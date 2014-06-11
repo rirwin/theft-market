@@ -4,10 +4,10 @@ class TruliaConfLoader:
     def __init__(self, config_path): 
         config = ConfigParser.ConfigParser()
         config.read(config_path + "/theft-market.conf")
-        self.url = config.get("trulia", "url")
-        self.api_key = config.get("trulia", "api-key")
-        self.location_library = config.get("trulia","location-library")
-        self.stats_library = config.get("trulia","stats-library")
+        self._url = config.get("trulia", "url")
+        self._api_key = config.get("trulia", "api-key")
+        self._location_library = config.get("trulia","location-library")
+        self._stats_library = config.get("trulia","stats-library")
 
 
 # unit-test
