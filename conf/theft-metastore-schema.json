@@ -1,27 +1,32 @@
 {
     "info_state": [
-        ["state","varchar"],
+        ["statename","varchar"],
+        ["statecode","varchar"],
         ["latitude","float8"],
         ["longitude","float8"]
     ],
     "info_city": [
+        ["id","int4"],
         ["city","varchar"],
-        ["state","varchar"],
+        ["statecode","varchar"],
         ["latitude","float8"],
         ["longitude","float8"]
     ],
     "info_county": [
         ["county","varchar"],
-        ["state","varchar"],
+        ["statecode","varchar"],
         ["latitude","float8"],
         ["longitude","float8"]
     ],
     "info_neighborhood": [
+        ["city","varchar"],
+        ["statecode","varchar"],
         ["id","varchar"],
         ["latitude","float8"],
         ["longitude","float8"]
     ],
     "info_zipcode": [
+        ["statecode","varchar"],
         ["zipcode","varchar"],
         ["latitude","float8"],
         ["longitude","float8"]
