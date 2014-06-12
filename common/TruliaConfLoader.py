@@ -11,6 +11,20 @@ class TruliaConfLoader:
         self.load_stats_functions_params(config)
         self.load_location_functions_params(config)
 
+        dbconf = ConfigParser.ConfigParser()
+        dbconf.read(config_path + "/theft-metastore.conf")
+        self.load_database_conf(dbconf)
+
+    def load_database_conf(self, config):
+        dbprog = config.get("main", "database-prog")
+        if dbprog == 'mysql':
+            self.database = config.get("mysql", "database")
+            self.username = config.get("mysql", "username")
+            self.password = config.get("mysql", "password")
+            self.host = config.get("mysql", "host")
+            self.port = config.get("mysql", "port")
+        
+
     def load_base_config(self, config):
         self.url = config.get("trulia", "url")
         self.apikey = config.get("trulia", "apikey")
