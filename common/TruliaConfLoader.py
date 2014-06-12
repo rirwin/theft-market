@@ -11,12 +11,12 @@ class TruliaConfLoader:
         self.load_stats_functions_params(config)
         self.load_location_functions_params(config)
 
-
     def load_base_config(self, config):
         self.url = config.get("trulia", "url")
-        self.api_key = config.get("trulia", "apikey")
+        self.apikey = config.get("trulia", "apikey")
         self.location_library = config.get("trulia","locationLibrary")
         self.stats_library = config.get("trulia","statsLibrary")
+        self.data_dir = config.get("trulia","dataDir")
 
 
     def load_functions_config(self, config):

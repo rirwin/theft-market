@@ -2,6 +2,8 @@ import urllib2 # consider requests
 import time
 import sys
 import os
+from xml.dom import minidom
+
 
 common_path = "../common/"
 sys.path.append(common_path)
@@ -11,6 +13,7 @@ class TruliaFetcher:
     def __init__(self, config_path):
         self.trulia_conf = TruliaConfLoader.TruliaConfLoader(config_path)
         
+
     def fetch_states(self):
         tc = self.trulia_conf
         url_str = tc.url + "library=" + tc.location_library + "&function=getStates&apikey=" + tc.apikey 
@@ -32,6 +35,7 @@ class TruliaFetcher:
             
         with open(dest_dir + "/" + file_name, 'wb') as stream:
             stream.write(str(text))
+
 
 
 # unit-test
