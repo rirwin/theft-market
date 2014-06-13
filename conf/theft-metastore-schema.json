@@ -1,34 +1,56 @@
 {
-    "info_state": [
+    
+    "info_state": 
+    { "schema": [
         ["statename","varchar"],
         ["statecode","varchar"],
         ["latitude","float8"],
         ["longitude","float8"]
-    ],
-    "info_city": [
+        ],
+      "primary_key": "statecode",
+      "unique_key": "statecode"
+    },
+    "info_city":       
+    { "schema": [
         ["id","int4"],
         ["city","varchar"],
         ["statecode","varchar"],
         ["latitude","float8"],
         ["longitude","float8"]
-    ],
-    "info_county": [
+        ],
+      "primary_key": "id",
+      "unique_key": "id"
+    },
+    "info_county": 
+    { "schema": [
+        ["id","int4"],
         ["county","varchar"],
         ["statecode","varchar"],
         ["latitude","float8"],
         ["longitude","float8"]
-    ],
-    "info_neighborhood": [
+        ],
+      "primary_key": "id",
+      "unique_key": "id"
+    },        
+    "info_neighborhood": 
+    { "schema": [
+        ["id","int4"],
         ["city","varchar"],
         ["statecode","varchar"],
-        ["id","varchar"],
         ["latitude","float8"],
         ["longitude","float8"]
-    ],
-    "info_zipcode": [
+        ],
+      "primary_key": "id",
+      "unique_key": "id"
+    },        
+    "info_zipcode": 
+    { "schema": [
+        ["zipcode","int4"],
         ["statecode","varchar"],
-        ["zipcode","varchar"],
         ["latitude","float8"],
         ["longitude","float8"]
-    ]
+        ],
+      "primary_key": "zipcode",
+      "unique_key": "zipcode"
+    }
 }

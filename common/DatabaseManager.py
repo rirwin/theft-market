@@ -58,8 +58,8 @@ class DatabaseManager:
     @wrappers.general_function_handler
     def reset_table(self, table_str):
         self.drop_table(self.conn, table_str)
-        schema_arr = self.schema_dict[table_str]
-        schema_str = DatabaseManager.translate_schema_array(self.dbprog, schema_arr)
+        table_schema = self.schema_dict[table_str]
+        schema_str = DatabaseManager.translate_schema_array(self.dbprog, table_schema)
         self.create_table(self.conn, table_str, schema_str)
 
 
@@ -96,7 +96,8 @@ class DatabaseManager:
     @staticmethod
     @wrappers.logger
     @wrappers.general_function_handler
-    def translate_schema_array(dbprog, schema_arr):
+    def translate_schema_array(dbprog, table_schema):
+        schema_arr = table_schema["schema"]
         if dbprog == "mysql":
             schema_str = "("
             for col_i in schema_arr:
@@ -105,7 +106,10 @@ class DatabaseManager:
                 else:
                     schema_str +=  col_i[0] + " " + col_i[1] + ","
         
-        return schema_str[:-1] + ")"
+        schema_str += "PRIMARY KEY(" + table_schema["primary_key"] + "),"
+        schema_str += "UNIQUE KEY(" + table_schema["unique_key"] + ") )"
+        
+        return schema_str
 
 
     @staticmethod
