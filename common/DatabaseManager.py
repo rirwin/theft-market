@@ -104,9 +104,9 @@ class DatabaseManager:
                 if col_i[1] == "varchar":
                     schema_str +=  col_i[0] + " varchar(256), "
                 else:
-                    schema_str +=  col_i[0] + " " + col_i[1] + ","
+                    schema_str +=  col_i[0] + " " + col_i[1] + ", "
         
-        schema_str += "PRIMARY KEY(" + table_schema["primary_key"] + "),"
+        schema_str += "PRIMARY KEY(" + table_schema["primary_key"] + "), "
         schema_str += "UNIQUE KEY(" + table_schema["unique_key"] + ") )"
         
         return schema_str

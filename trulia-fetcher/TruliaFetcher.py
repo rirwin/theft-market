@@ -4,10 +4,12 @@ import sys
 import os
 from xml.dom import minidom
 
+
 common_path = "../common/"
 sys.path.append(common_path)
 import TruliaConfLoader
 import DatabaseManager
+import wrappers
 
 class TruliaFetcher:
     def __init__(self, config_path):
@@ -28,7 +30,12 @@ class TruliaFetcher:
         self.data_dir = trulia_conf.data_dir
 
  
-    def fetch_states(self):
+    # Bootstrapping of all api calls
+    def fetch_all_states(self):
+
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "count(*)")
+        if res[0][0] == 51:
+            return # already called
 
         url_str = self.url + "library=" + self.location_library + "&function=getStates&apikey=" + self.apikey 
  
@@ -40,11 +47,31 @@ class TruliaFetcher:
             text = resp.read()
             self.save_xml_file(text, dest_dir, file_name)
  
-            info_state_val_str = TruliaFetcher.parse_state_info_resp(text)
-            import pprint
-            pprint.pprint(info_state_val_str)
+            info_state_val_str = TruliaFetcher.parse_get_states_resp(text)
             self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_state", info_state_val_str)
             
+    def fetch_all_counties(self):
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        for state_code_tuple in list(res):
+            self.fetch_counties_in_state(state_code_tuple[0])
+
+    def fetch_counties_in_state(self, state_code):
+        print "Fetch Counties in " + state_code
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_county", "count(*)", "state_code='" + state_code + "'")
+        if res[0][0] > 0:
+            return # already called
+
+        url_str = self.url + "library=" + self.location_library + "&function=getCountiesInState&state=" + state_code + "&apikey=" + self.apikey
+
+        resp = urllib2.urlopen(url_str)
+        if resp.code == 200:
+            dest_dir = self.data_dir + "/counties_location_library"
+            file_name = "getCountiesInState_state_EQ_" + state_code + "_.xml"
+            text = resp.read()
+            self.save_xml_file(text, dest_dir, file_name)
+            info_counties_val_str = TruliaFetcher.parse_get_counties_in_state_resp(text, state_code)
+            self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_county", info_counties_val_str)
+            time.sleep(2)
 
     def save_xml_file(self, text, dest_dir, file_name):
 
@@ -68,19 +95,35 @@ class TruliaFetcher:
 
     # Static parsing methods
     # each are manual because we have a different schema
+
     @staticmethod
-    def parse_state_info_resp(text):
+    def parse_get_states_resp(text):
        
         head_dom = minidom.parseString(text)
         dom_list = head_dom.getElementsByTagName('state')
         val_str = ""
         for dom_i in dom_list:
-
-            statecode = dom_i.getElementsByTagName('stateCode')[0].firstChild.nodeValue
-            statename = dom_i.getElementsByTagName('name')[0].firstChild.nodeValue
+            state_code = dom_i.getElementsByTagName('stateCode')[0].firstChild.nodeValue
+            state_name = dom_i.getElementsByTagName('name')[0].firstChild.nodeValue
             latitude = dom_i.getElementsByTagName('latitude')[0].firstChild.nodeValue
             longitude = dom_i.getElementsByTagName('longitude')[0].firstChild.nodeValue
-            val_str+="('" + statename + "','" + statecode + "'," + latitude + "," + longitude + "),"
+            val_str+="('" + state_name + "','" + state_code + "'," + latitude + "," + longitude + "),"
+
+        return val_str[:-1]
+
+    @staticmethod
+    def parse_get_counties_in_state_resp(text, state_code):
+       
+        head_dom = minidom.parseString(text)
+
+        dom_list = head_dom.getElementsByTagName('county')
+        val_str = ""
+        for dom_i in dom_list:
+            county_id = dom_i.getElementsByTagName('countyId')[0].firstChild.nodeValue
+            county_name = dom_i.getElementsByTagName('name')[0].firstChild.nodeValue
+            latitude = dom_i.getElementsByTagName('latitude')[0].firstChild.nodeValue
+            longitude = dom_i.getElementsByTagName('longitude')[0].firstChild.nodeValue
+            val_str+="(" + county_id + ",\"" + county_name + "\",'" + state_code + "'," + latitude + "," + longitude + "),"
 
         return val_str[:-1]
             
@@ -92,4 +135,5 @@ if __name__ == "__main__":
     #pprint.pprint(vars(tf)) # prints all contents
     #pprint.pprint(vars(tf.trulia_conf)) # prints all contents of tcl
 
-    tf.fetch_states()
+    tf.fetch_all_states()
+    tf.fetch_all_counties()
