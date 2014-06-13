@@ -18,8 +18,8 @@
         ["latitude","float8"],
         ["longitude","float8"]
         ],
-      "primary_key": "id",
-      "unique_key": "id"
+      "primary_key": "(city, state_code)",
+      "unique_key": "(city, state_code)"
     },
     "info_county": 
     { "schema": [
@@ -50,7 +50,7 @@
         ["latitude","float8"],
         ["longitude","float8"]
         ],
-      "primary_key": "zipcode",
-      "unique_key": "zipcode"
+      "primary_key": "(zipcode,state_code)",
+      "unique_key": "(zipcode,state_code)"
     }
 }

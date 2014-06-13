@@ -55,10 +55,12 @@ class TruliaFetcher:
         for state_code_tuple in list(res):
             self.fetch_counties_in_state(state_code_tuple[0])
 
+
     def fetch_counties_in_state(self, state_code):
-        print "Fetch Counties in " + state_code
+        print "Fetch counties in " + state_code
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_county", "count(*)", "state_code='" + state_code + "'")
         if res[0][0] > 0:
+            print " already retrieved"
             return # already called
 
         url_str = self.url + "library=" + self.location_library + "&function=getCountiesInState&state=" + state_code + "&apikey=" + self.apikey
@@ -71,7 +73,63 @@ class TruliaFetcher:
             self.save_xml_file(text, dest_dir, file_name)
             info_counties_val_str = TruliaFetcher.parse_get_counties_in_state_resp(text, state_code)
             self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_county", info_counties_val_str)
-            time.sleep(2)
+            print " county info retrieved"
+            time.sleep(2) # trulia api restriction
+
+
+    def fetch_all_cities(self):
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        for state_code_tuple in list(res):
+            self.fetch_cities_in_state(state_code_tuple[0])
+
+
+    def fetch_cities_in_state(self, state_code):
+        print "Fetching cities in " + state_code
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_city", "count(*)", "state_code='" + state_code + "'")
+        if res[0][0] > 0:
+            print " already retrieved"
+            return # already called
+
+        url_str = self.url + "library=" + self.location_library + "&function=getCitiesInState&state=" + state_code + "&apikey=" + self.apikey
+
+        resp = urllib2.urlopen(url_str)
+        if resp.code == 200:
+            dest_dir = self.data_dir + "/cities_location_library"
+            file_name = "getCitiesInState_state_EQ_" + state_code + "_.xml"
+            text = resp.read()
+            self.save_xml_file(text, dest_dir, file_name)
+            info_cities_val_str = TruliaFetcher.parse_get_cities_in_state_resp(text, state_code)
+            self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_city", info_cities_val_str)
+            print " city info retrieved"
+            time.sleep(2) # trulia api restriction
+
+
+    def fetch_all_zipcodes(self):
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        for state_code_tuple in list(res):
+            self.fetch_zipcodes_in_state(state_code_tuple[0])
+
+
+    def fetch_zipcodes_in_state(self, state_code):
+        print "Fetching zipcodes in " + state_code
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_zipcode", "count(*)", "state_code='" + state_code + "'")
+        if res[0][0] > 0:
+            print " already retrieved"
+            return # already called
+
+        url_str = self.url + "library=" + self.location_library + "&function=getZipCodesInState&state=" + state_code + "&apikey=" + self.apikey
+
+        resp = urllib2.urlopen(url_str)
+        if resp.code == 200:
+            dest_dir = self.data_dir + "/zipcodes_location_library"
+            file_name = "getZipCodesInState_state_EQ_" + state_code + "_.xml"
+            text = resp.read()
+            self.save_xml_file(text, dest_dir, file_name)
+            info_zipcodes_val_str = TruliaFetcher.parse_get_zipcodes_in_state_resp(text, state_code)
+            self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_zipcode", info_zipcodes_val_str)
+            print " zipcode info retrieved"
+            time.sleep(2) # trulia api restriction
+
 
     def save_xml_file(self, text, dest_dir, file_name):
 
@@ -95,6 +153,7 @@ class TruliaFetcher:
 
     # Static parsing methods
     # each are manual because we have a different schema
+    # and each handles dirty data in different ways
 
     @staticmethod
     def parse_get_states_resp(text):
@@ -127,6 +186,51 @@ class TruliaFetcher:
 
         return val_str[:-1]
             
+    @staticmethod
+    def parse_get_cities_in_state_resp(text, state_code):
+       
+        head_dom = minidom.parseString(text)
+
+        dom_list = head_dom.getElementsByTagName('city')
+        val_str = ""
+        for dom_i in dom_list:
+            city_name = dom_i.getElementsByTagName('name')[0].firstChild.nodeValue
+            try:
+                city_id = dom_i.getElementsByTagName('cityId')[0].firstChild.nodeValue
+                int(city_id) # will throw exception if not integer
+            except:
+                city_id = str(-1) # don't really care anyway
+
+            latitude = dom_i.getElementsByTagName('latitude')[0].firstChild.nodeValue
+            longitude = dom_i.getElementsByTagName('longitude')[0].firstChild.nodeValue
+            val_str+="(" + city_id + ",\"" + city_name + "\",'" + state_code + "'," + latitude + "," + longitude + "),"
+
+        return val_str[:-1]
+
+            
+    @staticmethod
+    def parse_get_zipcodes_in_state_resp(text, state_code):
+       
+        head_dom = minidom.parseString(text)
+
+        dom_list = head_dom.getElementsByTagName('zipCode')
+        val_str = ""
+        for dom_i in dom_list:
+
+                zipcode = dom_i.getElementsByTagName('name')[0].firstChild.nodeValue
+                try: # sometimes there is no lat/lon
+                    latitude = dom_i.getElementsByTagName('latitude')[0].firstChild.nodeValue
+                    longitude = dom_i.getElementsByTagName('longitude')[0].firstChild.nodeValue
+                except:
+                    latitude = str(-1000)
+                    latitude = str(-1000)
+
+                val_str+="(" + zipcode + ",\"" + state_code + "\"," + latitude + "," + longitude + "),"
+
+
+
+        return val_str[:-1]
+            
 
 # unit-test
 if __name__ == "__main__":
@@ -134,6 +238,16 @@ if __name__ == "__main__":
     tf = TruliaFetcher('../conf/')
     #pprint.pprint(vars(tf)) # prints all contents
     #pprint.pprint(vars(tf.trulia_conf)) # prints all contents of tcl
-
+    
     tf.fetch_all_states()
     tf.fetch_all_counties()
+    tf.fetch_all_cities()
+    tf.fetch_all_zipcodes()
+    
+    ''' Debugging dirty data
+    fh = open("/home/vagrant/data/theft-market/zipcodes_location_library/getZipCodesInState_state_EQ_AL_.xml")
+    text = fh.read()
+    fh.close()
+    state_code = 'AL'
+    info_zipcodes_val_str = TruliaFetcher.parse_get_zipcodes_in_state_resp(text, state_code)
+    '''
