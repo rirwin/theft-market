@@ -7,8 +7,8 @@
         ["latitude","float8"],
         ["longitude","float8"]
         ],
-      "primary_key": "state_code",
-      "unique_key": "state_code"
+      "primary_key": "(state_code)",
+      "unique_key": "(state_code)"
     },
     "info_city":       
     { "schema": [
@@ -29,8 +29,8 @@
         ["latitude","float8"],
         ["longitude","float8"]
         ],
-      "primary_key": "id",
-      "unique_key": "id"
+      "primary_key": "(id)",
+      "unique_key": "(id)"
     },        
     "info_neighborhood": 
     { "schema": [
@@ -40,8 +40,8 @@
         ["latitude","float8"],
         ["longitude","float8"]
         ],
-      "primary_key": "id",
-      "unique_key": "id"
+      "primary_key": "(id)",
+      "unique_key": "(id)"
     },        
     "info_zipcode": 
     { "schema": [
@@ -50,7 +50,7 @@
         ["latitude","float8"],
         ["longitude","float8"]
         ],
-      "primary_key": "(zipcode,state_code)",
-      "unique_key": "(zipcode,state_code)"
+      "primary_key": "(zipcode, state_code)",
+      "unique_key": "(zipcode, state_code)"
     }
 }

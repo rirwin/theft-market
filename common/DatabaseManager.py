@@ -106,8 +106,8 @@ class DatabaseManager:
                 else:
                     schema_str +=  col_i[0] + " " + col_i[1] + ", "
         
-        schema_str += "PRIMARY KEY(" + table_schema["primary_key"] + "), "
-        schema_str += "UNIQUE KEY(" + table_schema["unique_key"] + ") )"
+        schema_str += "PRIMARY KEY" + table_schema["primary_key"] + ", "
+        schema_str += "UNIQUE KEY" + table_schema["unique_key"] + " )"
         
         return schema_str
 
