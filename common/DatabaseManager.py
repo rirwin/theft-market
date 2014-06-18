@@ -56,6 +56,14 @@ class DatabaseManager:
 
     @wrappers.logger
     @wrappers.general_function_handler
+    def reset_data_metadata_tables(self):
+        for table_i in self.schema_dict:
+            if table_i.startswith("data_"):
+                self.reset_table(table_i)
+
+
+    @wrappers.logger
+    @wrappers.general_function_handler
     def reset_table(self, table_str):
         self.drop_table(self.conn, table_str)
         table_schema = self.schema_dict[table_str]

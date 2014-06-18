@@ -10,10 +10,20 @@ class TruliaConfLoader:
         self.load_functions_config(config)
         self.load_stats_functions_params(config)
         self.load_location_functions_params(config)
+        self.load_utils(config)
 
         dbconf = ConfigParser.ConfigParser()
         dbconf.read(config_path + "/theft-metastore.conf")
         self.load_database_conf(dbconf)
+
+
+    def load_utils(self, config):
+        self.kafka_dir = config.get("kafka","srcDir")
+        self.kafka_host = config.get("kafka","host")
+        self.kafka_port = config.get("kafka","port")
+        self.zookeeper_host = config.get("zookeeper","host")
+        self.zookeeper_port = config.get("zookeeper","port")
+
 
     def load_database_conf(self, config):
         dbprog = config.get("main", "database-prog")
