@@ -11,7 +11,7 @@ import TruliaConfLoader
 import DatabaseManager
 import wrappers
 
-class TruliaFetcher:
+class TruliaInfoFetcher:
     def __init__(self, config_path):
         trulia_conf = TruliaConfLoader.TruliaConfLoader(config_path)
         self.load_trulia_params(trulia_conf)
@@ -45,9 +45,8 @@ class TruliaFetcher:
             dest_dir = self.data_dir + "/states_location_library"
             file_name = "getStates.xml"
             text = resp.read()
-            self.save_xml_file(text, dest_dir, file_name)
  
-            info_state_val_str = TruliaFetcher.parse_get_states_resp(text)
+            info_state_val_str = TruliaInfoFetcher.parse_get_states_resp(text)
             self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_state", info_state_val_str)
             
     def fetch_all_counties(self):
@@ -70,8 +69,8 @@ class TruliaFetcher:
             dest_dir = self.data_dir + "/counties_location_library"
             file_name = "getCountiesInState_state_EQ_" + state_code + "_.xml"
             text = resp.read()
-            self.save_xml_file(text, dest_dir, file_name)
-            info_counties_val_str = TruliaFetcher.parse_get_counties_in_state_resp(text, state_code)
+
+            info_counties_val_str = TruliaInfoFetcher.parse_get_counties_in_state_resp(text, state_code)
             self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_county", info_counties_val_str)
             print " county info retrieved"
             time.sleep(2) # trulia api restriction
@@ -97,8 +96,8 @@ class TruliaFetcher:
             dest_dir = self.data_dir + "/cities_location_library"
             file_name = "getCitiesInState_state_EQ_" + state_code + "_.xml"
             text = resp.read()
-            self.save_xml_file(text, dest_dir, file_name)
-            info_cities_val_str = TruliaFetcher.parse_get_cities_in_state_resp(text, state_code)
+
+            info_cities_val_str = TruliaInfoFetcher.parse_get_cities_in_state_resp(text, state_code)
             self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_city", info_cities_val_str)
             print " city info retrieved"
             time.sleep(2) # trulia api restriction
@@ -124,8 +123,8 @@ class TruliaFetcher:
             dest_dir = self.data_dir + "/zipcodes_location_library"
             file_name = "getZipCodesInState_state_EQ_" + state_code + "_.xml"
             text = resp.read()
-            self.save_xml_file(text, dest_dir, file_name)
-            info_zipcodes_val_str = TruliaFetcher.parse_get_zipcodes_in_state_resp(text, state_code)
+
+            info_zipcodes_val_str = TruliaInfoFetcher.parse_get_zipcodes_in_state_resp(text, state_code)
             self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_zipcode", info_zipcodes_val_str)
             print " zipcode info retrieved"
             time.sleep(2) # trulia api restriction
@@ -235,9 +234,12 @@ class TruliaFetcher:
 # unit-test
 if __name__ == "__main__":
     import pprint
-    tf = TruliaFetcher('../conf/')
+    tf = TruliaInfoFetcher('../conf/')
     #pprint.pprint(vars(tf)) # prints all contents
     #pprint.pprint(vars(tf.trulia_conf)) # prints all contents of tcl
+    
+
+    # must run database_manager.DatabaseManager (main) to reset tables
     
     tf.fetch_all_states()
     tf.fetch_all_counties()
@@ -249,5 +251,5 @@ if __name__ == "__main__":
     text = fh.read()
     fh.close()
     state_code = 'AL'
-    info_zipcodes_val_str = TruliaFetcher.parse_get_zipcodes_in_state_resp(text, state_code)
+    info_zipcodes_val_str = TruliaInfoFetcher.parse_get_zipcodes_in_state_resp(text, state_code)
     '''
