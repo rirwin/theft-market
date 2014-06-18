@@ -10,6 +10,7 @@ sys.path.append(common_path)
 import TruliaConfLoader
 import DatabaseManager
 import wrappers
+import time
 
 class TruliaDataFetcher:
     def __init__(self, config_path):
@@ -28,15 +29,45 @@ class TruliaDataFetcher:
         self.url = trulia_conf.url
         self.apikey = trulia_conf.apikey
         self.data_dir = trulia_conf.data_dir
+        self.kafka_dir = trulia_conf.kafka_dir
+        self.kafka_host = trulia_conf.kafka_host
+        self.kafka_port = trulia_conf.kafka_port
+
+
+    def init_kafka(self):
+        sys.path.append(self.kafka_dir)
+        from kafka.client import KafkaClient
+        from kafka.consumer import SimpleConsumer
+        from kafka.producer import SimpleProducer, KeyedProducer
+        self.kafka = KafkaClient(self.kafka_host + ":" + self.kafka_port)
 
  
-    # Bootstrapping of all api calls
+    def get_latest_rx_date(self, obj_type, obj_key_dict):
+        table_str = "data_" + obj_type
+        where_str = ""
+        for k in obj_key_dict:
+            where_str += k + " = '" + obj_key_dict[k] + "' and "
+        where_str = where_str[:-4]
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, table_str, "most_recent_week", where_str)
+        if len(res) == 0:
+            latest_rx_date = "2000-01-01"
+        else:
+            latest_rx_date = str(res[0][0])
+        return latest_rx_date
+
+
     def fetch_all_states_data(self):
 
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
         for state_code_tuple in list(res):
             state_code = state_code_tuple[0]
-            print state_code
+            latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
+            now_date = TruliaDataFetcher.get_current_date()
+            url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikey
+            resp = urllib2.urlopen(url_str)
+            if resp.code == 200:
+                text = resp.read()
+                info_state_val_str = TruliaDataFetcher.parse_get_state_stats_resp(text)
 
     def save_xml_file(self, text, dest_dir, file_name):
 
@@ -49,24 +80,19 @@ class TruliaDataFetcher:
             stream.write(str(text))
 
 
-    def parse_one_tag(self, text, tag):
-        dom = minidom.parseString(text)
-        tagged_items = dom.getElementsByTagName(tag)
-
-        tagged_list = []
-        for tagged_item in tagged_items:
-            print tagged_item.firstChild.nodeValue
-
+    @staticmethod
+    def get_current_date():
+        return time.strftime("%Y-%m-%d")
 
     # Static parsing methods
     # each are manual because we have a different schema
     # and each handles dirty data in different ways
 
     @staticmethod
-    def parse_get_states_resp(text):
+    def parse_get_state_stats_resp(text):
        
         head_dom = minidom.parseString(text)
-        dom_list = head_dom.getElementsByTagName('state')
+        dom_list = head_dom.getElementsByTagName('listingStat')
         val_str = ""
         for dom_i in dom_list:
             state_code = dom_i.getElementsByTagName('stateCode')[0].firstChild.nodeValue
@@ -85,9 +111,8 @@ if __name__ == "__main__":
     #pprint.pprint(vars(tf)) # prints all contents
     #pprint.pprint(vars(tf.trulia_conf)) # prints all contents of tcl
     
-
-    # must run database_manager.DatabaseManager (main) to reset tables
     
+    tdf.init_kafka()
     tdf.fetch_all_states_data()
 
     
