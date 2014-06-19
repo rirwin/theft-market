@@ -67,7 +67,9 @@ class TruliaDataFetcher:
             resp = urllib2.urlopen(url_str)
             if resp.code == 200:
                 text = resp.read()
-                info_state_val_str = TruliaDataFetcher.parse_get_state_stats_resp(text)
+                self.save_xml_file(text,'/home/ubuntu/', 'state_stats.xml')
+                TruliaDataFetcher.parse_get_state_stats_resp(text)
+                sys.exit(0)
 
     def save_xml_file(self, text, dest_dir, file_name):
 
@@ -94,14 +96,28 @@ class TruliaDataFetcher:
         head_dom = minidom.parseString(text)
         dom_list = head_dom.getElementsByTagName('listingStat')
         val_str = ""
+        
         for dom_i in dom_list:
-            state_code = dom_i.getElementsByTagName('stateCode')[0].firstChild.nodeValue
-            state_name = dom_i.getElementsByTagName('name')[0].firstChild.nodeValue
-            latitude = dom_i.getElementsByTagName('latitude')[0].firstChild.nodeValue
-            longitude = dom_i.getElementsByTagName('longitude')[0].firstChild.nodeValue
-            val_str+="('" + state_name + "','" + state_code + "'," + latitude + "," + longitude + "),"
 
-        return val_str[:-1]
+            week_ending_date = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
+            print week_ending_date,"---"
+            week_list = dom_i.getElementsByTagName('listingPrice')
+            for week_dom_i in week_list:
+                k_bed_list = week_dom_i.getElementsByTagName('subcategory')
+                for k_bed_i in k_bed_list:
+                    prop_type = k_bed_i.getElementsByTagName('type')[0].firstChild.nodeValue
+                    num_prop = k_bed_i.getElementsByTagName('numberOfProperties')[0].firstChild.nodeValue
+                    avg_prop = k_bed_i.getElementsByTagName('averageListingPrice')[0].firstChild.nodeValue
+                    med_prop = k_bed_i.getElementsByTagName('medianListingPrice')[0].firstChild.nodeValue
+                    print prop_type, "has", num_prop, "properties with an average price of $" + avg_prop,"and median of $"+med_prop
+                
+            #latitude = dom_i.getElementsByTagName('latitude')[0].firstChild.nodeValue
+            #longitude = dom_i.getElementsByTagName('longitude')[0].firstChild.nodeValue
+            #val_str+="('" + state_name + "','" + state_code + "'," + latitude + "," + longitude + "),"
+
+
+
+        #return val_str[:-1]
 
 
 # unit-test
@@ -112,14 +128,14 @@ if __name__ == "__main__":
     #pprint.pprint(vars(tf.trulia_conf)) # prints all contents of tcl
     
     
-    tdf.init_kafka()
-    tdf.fetch_all_states_data()
+    #tdf.init_kafka()
+    #tdf.fetch_all_states_data()
 
     
-    ''' Debugging dirty data
-    fh = open("/home/vagrant/data/theft-market/zipcodes_location_library/getZipCodesInState_state_EQ_AL_.xml")
+    #Debugging dirty data
+    fh = open("/home/ubuntu/state_stats.xml")
     text = fh.read()
     fh.close()
-    state_code = 'AL'
-    info_zipcodes_val_str = TruliaFetcher.parse_get_zipcodes_in_state_resp(text, state_code)
-    '''
+    state_code = 'AK'
+    TruliaDataFetcher.parse_get_state_stats_resp(text)
+    
