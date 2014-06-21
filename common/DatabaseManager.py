@@ -133,8 +133,8 @@ if '__main__' == __name__:
     # Full path (incl. file name) to database credentials
     config_path = "../conf/"
     dm = DatabaseManager(config_path)
-
-    dm.reset_all_tables()
+    dm.reset_data_metadata_tables()
+    #dm.reset_all_tables()
     '''
     print dm.simple_select_query(dm.conn, "info_state", "*")
     print dm.simple_insert_query(dm.conn, "info_state", "('New Hampshire', 42.290192, -71.853737)")
