@@ -76,16 +76,51 @@ class TruliaDataFetcher:
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
         for state_code_tuple in list(res):
             state_code = state_code_tuple[0]
-            latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
-            now_date = TruliaDataFetcher.get_current_date()
-            url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikey
-            resp = urllib2.urlopen(url_str)
-            if resp.code == 200:
-                text = resp.read()
-                #self.save_xml_file(text,'/home/ubuntu/', 'state_stats.xml')
-                TruliaDataFetcher.parse_get_state_stats_resp(text)
-                #sys.exit(0)
+            self.fetch_state(state_code)
+            
 
+    def fetch_state(self, state_code):
+        latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
+        now_date = TruliaDataFetcher.get_current_date()
+        print "fetching state data about", state_code,"data from", latest_rx_date, "to", now_date
+
+        url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikey
+        resp = urllib2.urlopen(url_str)
+        if resp.code == 200:
+            text = resp.read()
+            TruliaDataFetcher.parse_get_state_stats_resp(text)
+
+    
+    def fetch_all_cities_all_states_data(self):
+
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        for state_code_tuple in list(res):
+            state_code = state_code_tuple[0]
+            self.fetch_all_cities_in_state_data(state_code)
+
+
+    def fetch_all_cities_in_state_data(self, state_code):
+
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_city", "city", "state_code = '" + state_code + "'")
+        for city_tuple in list(res):
+            city = city_tuple[0]
+            self.fetch_city(city, state_code)
+
+
+    def fetch_city(self, city, state_code):
+
+        latest_rx_date = self.get_latest_rx_date("city",{"state_code":state_code})
+        now_date = TruliaDataFetcher.get_current_date()
+
+        print "fetching city data about", city, state_code, "from", latest_rx_date, "to", now_date
+        city_spaced = '%20'.join(city.split(' '))
+        url_str = self.url + "library=" + self.stats_library + "&function=getCityStats&city=" + city_spaced + "&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikey
+        resp = urllib2.urlopen(url_str)
+        if resp.code == 200:
+            text = resp.read()
+            self.save_xml_file(text, '/home/ubuntu/test/', '_'.join(city.split(' ')) + ".xml")
+            TruliaDataFetcher.parse_get_city_stats_resp(text)
+    
 
     def save_xml_file(self, text, dest_dir, file_name):
 
@@ -108,16 +143,16 @@ class TruliaDataFetcher:
     # and each handles dirty data in different ways
 
     @staticmethod
-    def check_k_bed_tag(k_bed):
+    def is_str_positive_int(k_bed):
         try:
             k = int(k_bed)
             if k < 0:
                 return False
         except:
-            if (k_bed != "All"):
                 return False
 
         return True
+
 
     @staticmethod
     def parse_get_state_stats_resp(text):
@@ -139,33 +174,104 @@ class TruliaDataFetcher:
                 k_bed_list = week_dom_i.getElementsByTagName('subcategory')
                 for k_bed_i in k_bed_list:
                     prop_list = k_bed_i.getElementsByTagName('type')[0].firstChild.nodeValue
-                    num_list = k_bed_i.getElementsByTagName('numberOfProperties')[0].firstChild.nodeValue
-                    avg_list = k_bed_i.getElementsByTagName('averageListingPrice')[0].firstChild.nodeValue
-                    med_list = k_bed_i.getElementsByTagName('medianListingPrice')[0].firstChild.nodeValue
 
-                    # checking k_bed to be either a positive int or "All"
+                    # checking k_bed to be either a positive int
+                    # don't record aggregated 'All Properties' stats
                     k_bed = prop_list.split(' ')[0]
-                    if (TruliaDataFetcher.check_k_bed_tag(k_bed) is False):
-                        return 
 
-                    ts = int(time.time()*1000)                            
-                    state_dict = {}
+                    if (TruliaDataFetcher.is_str_positive_int(k_bed)):
+                         
+                        state_dict = {}
+                        state_dict['state_code'] = str(state_code)
+                        state_dict['week_ending_date'] = str(week_ending_date)
+                        state_dict['num_beds'] = int(k_bed)
+                        
+                        # carefully parsing of sub xml dom
+                        listing_stat_dict = TruliaDataFetcher.parse_listing_stat(k_bed_i)
+                        
+                        # merge keys
+                        state_dict = dict(state_dict.items() + listing_stat_dict.items())
+                        event.Event('state.all_list_stats', state_dict)
 
-                    state_dict['state_code'] = str(state_code)
-                    state_dict['ts'] = ts
-                    state_dict['week_ending_date'] = str(week_ending_date)
-                    state_dict['num_beds'] = str(k_bed)
+    @staticmethod
+    def parse_get_city_stats_resp(text):
+       
+        head_dom = minidom.parseString(text)
+        dom_list = head_dom.getElementsByTagName('listingStat')
+        state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
+        city = head_dom.getElementsByTagName('city')[0].firstChild.nodeValue
 
-                    try:
-                        state_dict['avg_list'] = int(avg_list)
-                    except:
-                        continue
-                    try:
-                        state_dict['med_list'] = int(med_list)
-                    except:
-                        continue
+        print city, state_code
+        # No key, do not log
+        if len(state_code) != 2 and len(city) > 0:
+            return
 
-                    event.Event('state.all_list_stats',state_dict)
+        for dom_i in dom_list:
+
+            week_ending_date = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
+            week_list = dom_i.getElementsByTagName('listingPrice')
+
+            for week_dom_i in week_list:
+                k_bed_list = week_dom_i.getElementsByTagName('subcategory')
+                for k_bed_i in k_bed_list:
+                    prop_list = k_bed_i.getElementsByTagName('type')[0].firstChild.nodeValue
+
+                    # checking k_bed to be either a positive int
+                    # don't record aggregated 'All Properties' stats
+                    k_bed = prop_list.split(' ')[0]
+
+                    if (TruliaDataFetcher.is_str_positive_int(k_bed)):
+                         
+                        city_dict = {}
+                        city_dict['state_code'] = str(state_code)
+                        city_dict['city'] = str(city)
+                        city_dict['week_ending_date'] = str(week_ending_date)
+                        city_dict['num_beds'] = int(k_bed)
+                        
+                        # carefully parsing of sub xml dom
+                        listing_stat_dict = TruliaDataFetcher.parse_listing_stat(k_bed_i)
+                        
+                        # merge keys
+                        city_dict = dict(city_dict.items() + listing_stat_dict.items())
+                        event.Event('city.all_list_stats', city_dict)
+
+
+    @staticmethod
+    def parse_listing_stat(list_stat_dom):
+
+        stat_dict = {}
+
+        try:
+            num_list = list_stat_dom.getElementsByTagName('numberOfProperties')[0].firstChild.nodeValue
+        except:
+            pass
+
+        try:
+            avg_list = list_stat_dom.getElementsByTagName('averageListingPrice')[0].firstChild.nodeValue
+        except:
+            pass
+
+        try:
+            med_list = list_stat_dom.getElementsByTagName('medianListingPrice')[0].firstChild.nodeValue
+        except:
+            pass
+
+        stat_dict['ts'] = int(time.time()*1000)                           
+
+        if TruliaDataFetcher.is_str_positive_int(num_list):
+            stat_dict['num_list'] = int(num_list)
+
+        try:
+            stat_dict['avg_list'] = int(avg_list)
+        except:
+            pass
+
+        try:
+            stat_dict['med_list'] = int(med_list)
+        except:
+            pass
+
+        return stat_dict
 
 
 # unit-test
@@ -177,14 +283,17 @@ if __name__ == "__main__":
     
     
     #tdf.init_kafka()
-    tdf.fetch_all_states_data()
-
+    #tdf.fetch_all_states_data()
+    #tdf.fetch_all_cities_all_states_data()
+    tdf.fetch_all_cities_in_state_data('CA')
+    
     
     #Debugging section
     '''
-    fh = open("/home/ubuntu/state_stats.xml")
+    #tdf.fetch_city('Apple Valley','CA')
+    
+    fh = open("/home/ubuntu/test/Apple_Valley.xml")
     text = fh.read()
     fh.close()
-    state_code = 'AK'
-    TruliaDataFetcher.parse_get_state_stats_resp(text)
+    TruliaDataFetcher.parse_get_city_stats_resp(text)
     '''
