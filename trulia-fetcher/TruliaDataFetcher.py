@@ -77,7 +77,7 @@ class TruliaDataFetcher:
         for state_code_tuple in list(res):
             state_code = state_code_tuple[0]
             self.fetch_state(state_code)
-            
+            time.sleep(2) # trulia api restriction
 
     def fetch_state(self, state_code):
         latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
@@ -105,6 +105,7 @@ class TruliaDataFetcher:
         for city_tuple in list(res):
             city = city_tuple[0]
             self.fetch_city(city, state_code)
+            time.sleep(2) # trulia api restriction 
 
 
     def fetch_city(self, city, state_code):
@@ -118,9 +119,10 @@ class TruliaDataFetcher:
         resp = urllib2.urlopen(url_str)
         if resp.code == 200:
             text = resp.read()
-            self.save_xml_file(text, '/home/ubuntu/test/', '_'.join(city.split(' ')) + ".xml")
+            dest_dir = '/home/ubuntu/data/city/' + state_code + '/fethed_on_' + '_'.join(now_date.split('-'))
+            dest_file = '_'.join(city.split(' ')) + ".xml"
+            self.save_xml_file(text, dest_dir, dest_file)
             TruliaDataFetcher.parse_get_city_stats_resp(text)
-    
 
     def save_xml_file(self, text, dest_dir, file_name):
 
@@ -284,13 +286,13 @@ if __name__ == "__main__":
     
     #tdf.init_kafka()
     #tdf.fetch_all_states_data()
-    #tdf.fetch_all_cities_all_states_data()
-    tdf.fetch_all_cities_in_state_data('CA')
+    tdf.fetch_all_cities_all_states_data()
+    #tdf.fetch_all_cities_in_state_data('CA')
     
     
     #Debugging section
     '''
-    #tdf.fetch_city('Apple Valley','CA')
+    tdf.fetch_city('Alpaugh','CA')
     
     fh = open("/home/ubuntu/test/Apple_Valley.xml")
     text = fh.read()
