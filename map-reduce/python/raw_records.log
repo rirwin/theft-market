@@ -1,0 +1,6 @@
+2014-06-19T22:49:08Z	hdfs.state.all_list_stats	{"med_list":269080,"ts":1403218148769,"num_beds":"4","week_ending_date":"2014-06-14","avg_list":497310,"state_code":"WY"}
+2014-06-19T22:49:08Z	hdfs.state.all_list_stats	{"med_list":351990,"ts":1403218148769,"num_beds":"5","week_ending_date":"2014-06-14","avg_list":825502,"state_code":"WY"}
+2014-06-19T22:49:08Z	hdfs.state.all_list_stats	{"med_list":389400,"ts":1403218148769,"num_beds":"6","week_ending_date":"2014-06-14","avg_list":889112,"state_code":"WY"}
+2014-06-19T22:49:08Z	hdfs.state.all_list_stats	{"med_list":499160,"ts":1403218148769,"num_beds":"7","week_ending_date":"2014-06-14","avg_list":2192419,"state_code":"WY"}
+2014-06-19T22:49:08Z	hdfs.state.all_list_stats	{"med_list":1924500,"ts":1403218148769,"num_beds":"8","week_ending_date":"2014-06-14","avg_list":4407125,"state_code":"WY"}
+2014-06-19T22:49:08Z	hdfs.state.all_list_stats	{"med_list":24750000,"ts":1403218148769,"num_beds":"10","week_ending_date":"2014-06-14","avg_list":24750000,"state_code":"WY"}
