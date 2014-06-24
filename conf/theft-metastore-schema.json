@@ -85,11 +85,10 @@
     "data_zipcode":
     { "schema": [
        ["zipcode","int4"],
-       ["state_code","varchar"],
        ["most_recent_week","date"],
        ["timestamp","timestamp"]
       ],
-      "primary_key":"(zipcode, state_code, timestamp)",
-      "unique_key":"(zipcode, state_code, timestamp)"
+      "primary_key":"(zipcode, timestamp)",
+      "unique_key":"(zipcode, timestamp)"
     }
 }
