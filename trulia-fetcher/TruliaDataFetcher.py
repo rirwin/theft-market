@@ -61,7 +61,7 @@ class TruliaDataFetcher:
         table_str = "data_" + obj_type
         where_str = ""
         for k in obj_key_dict:
-            where_str += k + " = '" + obj_key_dict[k] + "' and "
+            where_str += k + " = '" + str(obj_key_dict[k]) + "' and "
         where_str = where_str[:-4]
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, table_str, "most_recent_week", where_str)
         if len(res) == 0:
@@ -89,13 +89,15 @@ class TruliaDataFetcher:
         if resp.code == 200:
             text = resp.read()
             TruliaDataFetcher.parse_get_state_stats_resp(text)
+            self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", "('" + state_code + "',  '" + latest_rx_week + "', NOW())")
 
-    
+
     def fetch_all_cities_all_states_data(self):
 
-        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code", "state_code > 'IN'")
         for state_code_tuple in list(res):
             state_code = state_code_tuple[0]
+            print state_code
             self.fetch_all_cities_in_state_data(state_code)
 
 
@@ -123,6 +125,37 @@ class TruliaDataFetcher:
             dest_file = '_'.join(city.split(' ')) + ".xml"
             self.save_xml_file(text, dest_dir, dest_file)
             TruliaDataFetcher.parse_get_city_stats_resp(text)
+            self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_city", "('" + state_code + "', '" + city + "', '" + latest_rx_date + "', NOW())")
+
+
+    def fetch_all_zipcodes_data(self): 
+
+        # distinct needed since some zipcodes span multiple states (as reported by Trulia)
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_zipcode", "distinct zipcode")
+        for zipcode_tuple in list(res):
+            zipcode = zipcode_tuple[0]
+            zipcode = str(100000 + zipcode)[1:] 
+            self.fetch_zipcode_data(zipcode)
+            time.sleep(2) # trulia api restriction 
+
+
+    def fetch_zipcode_data(self, zipcode):
+
+        latest_rx_date = self.get_latest_rx_date("zipcode",{"zipcode":zipcode})
+        now_date = TruliaDataFetcher.get_current_date()
+        print "fetching zipcode data about", zipcode, "from", latest_rx_date, "to", now_date
+        url_str = self.url + "library=" + self.stats_library + "&function=getZipCodeStats&zipCode=" + zipcode + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikey
+        print url_str
+        resp = urllib2.urlopen(url_str)
+        if resp.code == 200:
+            text = resp.read()
+            print text
+            dest_dir = '/home/ubuntu/data/zipcode/' + zipcode + '/fethed_on_' + '_'.join(now_date.split('-'))
+            dest_file = zipcode + ".xml"
+            self.save_xml_file(text, dest_dir, dest_file)
+            TruliaDataFetcher.parse_get_zipcode_stats_resp(text)
+            self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_zipcode", "(" + zipcode + ", '" + latest_rx_date + "', NOW())")
+
 
     def save_xml_file(self, text, dest_dir, file_name):
 
@@ -239,6 +272,49 @@ class TruliaDataFetcher:
 
 
     @staticmethod
+    def parse_get_zipcode_stats_resp(text):
+       
+        head_dom = minidom.parseString(text)
+        dom_list = head_dom.getElementsByTagName('listingStat')
+        state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
+        zipcode = head_dom.getElementsByTagName('zipCode')[0].firstChild.nodeValue
+
+        print zipcode, state_code
+        # No key, do not log
+        if len(state_code) != 2 and len(zipcode) > 0:
+            return
+
+        for dom_i in dom_list:
+
+            week_ending_date = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
+            week_list = dom_i.getElementsByTagName('listingPrice')
+
+            for week_dom_i in week_list:
+                k_bed_list = week_dom_i.getElementsByTagName('subcategory')
+                for k_bed_i in k_bed_list:
+                    prop_list = k_bed_i.getElementsByTagName('type')[0].firstChild.nodeValue
+
+                    # checking k_bed to be either a positive int
+                    # don't record aggregated 'All Properties' stats
+                    k_bed = prop_list.split(' ')[0]
+
+                    if (TruliaDataFetcher.is_str_positive_int(k_bed)):
+                         
+                        zipcode_dict = {}
+                        zipcode_dict['state_code'] = str(state_code)
+                        zipcode_dict['zipcode'] = str(zipcode)
+                        zipcode_dict['week_ending_date'] = str(week_ending_date)
+                        zipcode_dict['num_beds'] = int(k_bed)
+                        
+                        # carefully parsing of sub xml dom
+                        listing_stat_dict = TruliaDataFetcher.parse_listing_stat(k_bed_i)
+                        
+                        # merge keys
+                        zipcode_dict = dict(zipcode_dict.items() + listing_stat_dict.items())
+                        event.Event('zipcode.all_list_stats', zipcode_dict)
+
+
+    @staticmethod
     def parse_listing_stat(list_stat_dom):
 
         stat_dict = {}
@@ -286,9 +362,9 @@ if __name__ == "__main__":
     
     #tdf.init_kafka()
     #tdf.fetch_all_states_data()
-    tdf.fetch_all_cities_all_states_data()
-    #tdf.fetch_all_cities_in_state_data('CA')
-    
+    #tdf.fetch_all_cities_in_state_data('IN')
+    #tdf.fetch_all_cities_all_states_data()
+    tdf.fetch_all_zipcodes_data()
     
     #Debugging section
     '''
