@@ -65,9 +65,6 @@ def parse_get_city_stats_resp(text): # TODO pass output function :-)
 
 
 
-
-
-
 conn = happybase.Connection('localhost')
 table = conn.table('city_stats')
 
