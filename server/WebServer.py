@@ -11,8 +11,8 @@ class WebServer:
         import RestCallHandler
 
         # HBase connection
-        #import HBaseManager
-        self.hbase_manager = None
+        import HBaseManager
+        self.hbase_manager = HBaseManager.HBaseManager()
         
         self.app = Flask (__name__)
         
