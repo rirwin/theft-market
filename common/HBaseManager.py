@@ -14,6 +14,8 @@ class HBaseManager:
     def init_hbase(self):
         self.conn = happybase.Connection('localhost')
         self.city_stats_table = self.conn.table('city_stats')
+        #self.city_stats_table_26june14 = self.conn.table('city_stats_26june14')
+        
         
         
     @wrappers.general_function_handler
@@ -33,8 +35,3 @@ class HBaseManager:
             sum_ += int(eval(data[key])['n'])
 
         return sum_
-
-
-
-        
-    

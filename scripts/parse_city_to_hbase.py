@@ -20,7 +20,7 @@ def get_file_list(data_dir, loc_type):
     return file_list
 
 
-def parse_get_city_stats_resp(text): # TODO pass output function :-)
+def parse_get_city_stats_resp(text): 
 
         head_dom = minidom.parseString(text)
         dom_list = head_dom.getElementsByTagName('listingStat')
@@ -31,6 +31,12 @@ def parse_get_city_stats_resp(text): # TODO pass output function :-)
         # No key, do not log                                                                                              
         if len(state_code) != 2 and len(city) > 0:
             return
+
+
+        res = dm.simple_select_query(dm.conn, "info_city", "latitude, longitude", "state_code = '" + state_code + "' and city = '" + city + "' LIMIT 1")
+        lat = res[0][0]
+        lon = res[0][1]
+
 
         # Base of HBase key, will append bedroom count
         hbase_base_key = state_code.lower() + '-' + '_'.join(city.lower().split(' '))
@@ -51,23 +57,66 @@ def parse_get_city_stats_resp(text): # TODO pass output function :-)
 
 
                     if (TruliaDataFetcher.TruliaDataFetcher.is_str_positive_int(k_bed)):
-                        print k_bed
+                        #print k_bed
                         try:
+                            ## HBase
+                            key = hbase_base_key + '-' + str(k_bed)
+
                             num_list = k_bed_i.getElementsByTagName('numberOfProperties')[0].firstChild.nodeValue
                             avg_list = k_bed_i.getElementsByTagName('averageListingPrice')[0].firstChild.nodeValue
-                            key = hbase_base_key + '-' + str(k_bed)
                             col_name = 'cf:' + week_ending_date
                             val = str({'a': avg_list, 'n' : num_list })
-                            print val
+                            
                             table.put(key, {col_name : val} )
+
+                            # city meta-data
+                            table.put(key, {'i:city': city})
+                            table.put(key, {'i:sc':state_code})
+                            table.put(key, {'i:lat:':str(lat)})
+                            table.put(key, {'i:lon':str(lon)}) 
+                            # End Hbase
+
+                            ## Fluentd
+                            city_dict = {}
+                            city_dict['state_code'] = str(state_code)
+                            city_dict['city'] = str(city)
+                            city_dict['week_ending_date'] = str(week_ending_date)
+                            city_dict['num_beds'] = int(k_bed)
+                            
+                            # carefully parsing of sub xml dom
+                            listing_stat_dict = TruliaDataFetcher.TruliaDataFetcher.parse_listing_stat(k_bed_i)
+
+                            # merge keys
+                            city_dict = dict(city_dict.items() + listing_stat_dict.items())
+                            event.Event('city.all_list_stats', city_dict)
+                            ## End Fluentd
+
                         except:
                             continue
 
 
-
+sys.path.append('../common/')
+import DatabaseManager
+dm = DatabaseManager.DatabaseManager('../conf/')
+import time
 conn = happybase.Connection('localhost')
-table = conn.table('city_stats')
 
+conn.delete_table('city_stats_26june14', disable=True)
+time.sleep(2)
+conn.create_table('city_stats_26june14', {'cf': {} ,'i':{}})
+
+
+time.sleep(2)
+
+table = conn.table('city_stats_26june14')
+#table = conn.table('city_stats')
+
+# TODO cleanup
+fluent_path = "../extern/fluent-logger-python"
+sys.path.append(fluent_path)
+from fluent import sender
+from fluent import event
+sender.setup('hdfs')
 
 file_list = get_file_list(data_dir, loc_type)
 
@@ -76,7 +125,6 @@ for file_name in file_list:
     file_handle = open(file_name, 'r')
     text = file_handle.read()
     file_handle.close()
-    
     parse_get_city_stats_resp(text)
 
 
