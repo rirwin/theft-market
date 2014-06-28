@@ -3,6 +3,7 @@ import datetime
 ### Functions for handling queries
 
 
+
 def handle_data_city_volume_query(hbase_mgr, db_mgr, params):
     
     try:
@@ -15,8 +16,8 @@ def handle_data_city_volume_query(hbase_mgr, db_mgr, params):
     if valid is False:
         return msg, 400
 
-    if is_ascii(params_dict['state_code']) is False or is_ascii(params_dict['city']) is False:
-        return "non ascii characters for city and/or state", 400
+    if params_dict['state_code'].isalpha() is False or params_dict['city'].isalpha() is False:
+        return "non alphabet characters for city and/or state", 400
 
     try:
         int(params_dict['num_bedrooms'])
@@ -60,8 +61,8 @@ def handle_data_city_average_query(hbase_mgr, db_mgr, params):
     if valid is False:
         return msg, 400
 
-    if is_ascii(params_dict['state_code']) is False or is_ascii(params_dict['city']) is False:
-        return "non ascii characters for city and/or state", 400
+    if params_dict['state_code'].isalpha() is False or params_dict['city'].isalpha() is False:
+        return "non alphabet characters for city and/or state", 400
 
     try:
         int(params_dict['num_bedrooms'])
