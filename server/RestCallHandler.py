@@ -2,94 +2,72 @@ import json
 import datetime
 ### Functions for handling queries
 
+class city_query_handler(object):
+    def __init__(self, func):
+        self.func = func
+    def __get__(self, obj, type=None):
+        return self.__class__(self.func.__get__(obj, type))
+    def __call__(self, *args, **kw):
 
-
-def handle_data_city_volume_query(hbase_mgr, db_mgr, params):
+        try:
+            params_dict = eval(args[2])
+        except:
+            return "400 - malformed parameters dictionary", 400
     
-    try:
-        params_dict = eval(params)
-    except:
-        return "400 - malformed parameters dictionary", 400
+        valid, msg = check_params_dict_keys(params_dict, ['state_code','city','num_bedrooms','start_date','end_date'])
+
+        if valid is False:
+            return msg, 400
+
+        if params_dict['state_code'].isalpha() is False or params_dict['city'].isalpha() is False:
+            return "non alphabet characters for city and/or state", 400
+
+        try:
+            int(params_dict['num_bedrooms'])
+        except:
+            return "400 - Malformed number of bedrooms, integer please"
     
-    valid, msg = check_params_dict_keys(params_dict, ['state_code','city','num_bedrooms','start_date','end_date'])
+        if len(params_dict['state_code']) != 2:
+            return "please use state_code as 'CA'", 400
 
-    if valid is False:
-        return msg, 400
+        params_dict['city'] = '_'.join(params_dict['city'].split(' ')).lower()
+        params_dict['state_code'] = params_dict['state_code'].lower()
 
-    if params_dict['state_code'].isalpha() is False or params_dict['city'].isalpha() is False:
-        return "non alphabet characters for city and/or state", 400
+        if is_valid_date(params_dict['start_date']) is False:
+            return "400 - malformed start_date parameter (YYYY-MM-DD needed)"
 
-    try:
-        int(params_dict['num_bedrooms'])
-    except:
-        return "400 - Malformed number of bedrooms, integer please"
+        if is_valid_date(params_dict['end_date']) is False:
+            return "400 - malformed end_date parameter (YYYY-MM-DD needed)"
     
-    if len(params_dict['state_code']) != 2:
-        return "please use state_code as 'CA'", 400
+        if datetime.datetime.strptime(params_dict['start_date'], '%Y-%m-%d') > datetime.datetime.strptime(params_dict['end_date'], '%Y-%m-%d'):
+            return "400 - start_date after than end_date"
 
-    params_dict['city'] = '_'.join(params_dict['city'].split(' ')).lower()
-    params_dict['state_code'] = params_dict['state_code'].lower()
+        
+        retval = self.func(args[0], args[1], params_dict, **kw)
 
-    if is_valid_date(params_dict['start_date']) is False:
-        return "400 - malformed start_date parameter (YYYY-MM-DD needed)"
+        return retval
 
-    if is_valid_date(params_dict['end_date']) is False:
-        return "400 - malformed end_date parameter (YYYY-MM-DD needed)"
-    
-    if datetime.datetime.strptime(params_dict['start_date'], '%Y-%m-%d') > datetime.datetime.strptime(params_dict['end_date'], '%Y-%m-%d'):
-        return "400 - start_date after than end_date"
+
+@city_query_handler
+def handle_data_city_volume_query(hbase_mgr, db_mgr, params_dict):
 
     # add a few params to params_dict
     params_dict["_subject_type"] = "city"
     params_dict["_query_type"] = "volume"
 
     json_data = get_data(hbase_mgr, db_mgr, params_dict)
-    
 
     return json.dumps(json_data)
 
 
-def handle_data_city_average_query(hbase_mgr, db_mgr, params):
-    
-    try:
-        params_dict = eval(params)
-    except:
-        return "400 - malformed parameters dictionary", 400
-    
-    valid, msg = check_params_dict_keys(params_dict, ['state_code','city','num_bedrooms','start_date','end_date'])
-
-    if valid is False:
-        return msg, 400
-
-    if params_dict['state_code'].isalpha() is False or params_dict['city'].isalpha() is False:
-        return "non alphabet characters for city and/or state", 400
-
-    try:
-        int(params_dict['num_bedrooms'])
-    except:
-        return "400 - Malformed number of bedrooms, integer please"
-    
-    if len(params_dict['state_code']) != 2:
-        return "please use state_code as 'CA'", 400
-
-    params_dict['city'] = '_'.join(params_dict['city'].split(' ')).lower()
-    params_dict['state_code'] = params_dict['state_code'].lower()
-
-    if is_valid_date(params_dict['start_date']) is False:
-        return "400 - malformed start_date parameter (YYYY-MM-DD needed)"
-
-    if is_valid_date(params_dict['end_date']) is False:
-        return "400 - malformed end_date parameter (YYYY-MM-DD needed)"
-    
-    if datetime.datetime.strptime(params_dict['start_date'], '%Y-%m-%d') > datetime.datetime.strptime(params_dict['end_date'], '%Y-%m-%d'):
-        return "400 - start_date after than end_date"
+@city_query_handler
+def handle_data_city_average_query(hbase_mgr, db_mgr, params_dict):
 
     # add a few params to params_dict
     params_dict["_subject_type"] = "city"
     params_dict["_query_type"] = "average"
 
     json_data = get_data(hbase_mgr, db_mgr, params_dict)
-    
 
     return json.dumps(json_data)
 
@@ -99,36 +77,28 @@ def get_data(hbase_mgr, db_mgr, params_dict):
     start_date = params_dict['start_date']
     end_date = params_dict['end_date']
     num_bedrooms = params_dict['num_bedrooms']
-    
-    if params_dict["_query_type"] == "volume":
-        if params_dict["_subject_type"] == "city":
-            
-            nearby_cities = get_city_and_nearby_cities(db_mgr, params_dict['state_code'], params_dict['city'])
 
-            if nearby_cities is None:
-                return {"query result":"No result found","city": params_dict['city'], "state_code":params_dict['state_code']}
+
+    if params_dict["_subject_type"] == "city":
+        nearby_cities = get_city_and_nearby_cities(db_mgr, params_dict['state_code'], params_dict['city'])
+
+        if nearby_cities is None:
+            return {"query result":"No result found","city": params_dict['city'], "state_code":params_dict['state_code']}
+        
+        if params_dict["_query_type"] == "volume":
 
             json_resp = []
-
             for nearby_city in nearby_cities:
                 json_resp.append(get_city_list_volume_dict(hbase_mgr, nearby_city[0], nearby_city[1], num_bedrooms, start_date, end_date))
             
-
             return json_resp
 
-    elif params_dict["_query_type"] == "average":
-        if params_dict["_subject_type"] == "city":
-            
-            nearby_cities = get_city_and_nearby_cities(db_mgr, params_dict['state_code'], params_dict['city'])
-
-            if nearby_cities is None:
-                return {"query result":"No result found","city": params_dict['city'], "state_code":params_dict['state_code']}
+        elif params_dict["_query_type"] == "average":
 
             json_resp = []
             for nearby_city in nearby_cities:
                 json_resp.append(get_city_list_average_dict(hbase_mgr, nearby_city[0], nearby_city[1], num_bedrooms, start_date, end_date))
             
-
             return json_resp
 
 
@@ -206,3 +176,6 @@ def get_city_and_nearby_cities(dm, state_code, city):
     nearby_cities_res = dm.simple_select_query(dm.conn, "info_city HAVING distance < " + rad_mi + " ORDER BY distance LIMIT 0 , " + limit, "state_code, city, ( 3959 * acos( cos( radians(" + lat + ") ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(" + lon +") ) + sin( radians(" + lat + ") ) * sin( radians( latitude ) ) ) ) AS distance")
 
     return nearby_cities_res
+
+
+
