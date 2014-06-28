@@ -102,9 +102,13 @@ def get_data(hbase_mgr, db_mgr, params_dict):
     if params_dict["_query_type"] == "volume":
         if params_dict["_subject_type"] == "city":
             
-            nearby_cities = get_nearby_cities(db_mgr, params_dict['state_code'], params_dict['city'])
+            nearby_cities = get_city_and_nearby_cities(db_mgr, params_dict['state_code'], params_dict['city'])
+
+            if nearby_cities is None:
+                return {"query result":"No result found","city": params_dict['city'], "state_code":params_dict['state_code']}
 
             json_resp = []
+
             for nearby_city in nearby_cities:
                 json_resp.append(get_city_list_volume_dict(hbase_mgr, nearby_city[0], nearby_city[1], num_bedrooms, start_date, end_date))
             
@@ -114,7 +118,10 @@ def get_data(hbase_mgr, db_mgr, params_dict):
     elif params_dict["_query_type"] == "average":
         if params_dict["_subject_type"] == "city":
             
-            nearby_cities = get_nearby_cities(db_mgr, params_dict['state_code'], params_dict['city'])
+            nearby_cities = get_city_and_nearby_cities(db_mgr, params_dict['state_code'], params_dict['city'])
+
+            if nearby_cities is None:
+                return {"query result":"No result found","city": params_dict['city'], "state_code":params_dict['state_code']}
 
             json_resp = []
             for nearby_city in nearby_cities:
@@ -180,10 +187,13 @@ def is_ascii(param):
     return True
     
 
-def get_nearby_cities(dm, state_code, city):
+def get_city_and_nearby_cities(dm, state_code, city):
 
     city_ = ' '.join(city.split('_'))
     city_res = dm.simple_select_query(dm.conn, "info_city", "latitude, longitude","city = '" + city_ + "' and state_code = '" + state_code + "'")
+
+    if len(city_res) == 0:
+        return None
 
     lat = str(city_res[0][0])
     lon = str(city_res[0][1])
