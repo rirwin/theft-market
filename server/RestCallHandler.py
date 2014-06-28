@@ -19,8 +19,10 @@ class city_query_handler(object):
         if valid is False:
             return msg, 400
 
-        if params_dict['state_code'].isalpha() is False or params_dict['city'].isalpha() is False:
-            return "non alphabet characters for city and/or state", 400
+        # checks for alpha characters (and allows space or %20 for city names) 
+        # TODO make function  and allow hyphens, periods, and other valid characters
+        if params_dict['state_code'].isalpha() is False or ''.join(params_dict['city'].split(' ')).isalpha() is False:
+            return "non alphabet characters for city and/or state" + ''.join(params_dict['city'].split(' ')), 400
 
         try:
             int(params_dict['num_bedrooms'])
