@@ -14,7 +14,7 @@ loc_type = 'city'
 
 def get_file_list(data_dir, loc_type):
     file_list = []
-    for root, dir_names, file_names in os.walk(data_dir + '/' + loc_type):
+    for root, dir_names, file_names in os.walk(data_dir + '/' + loc_type ):
         for file_name in fnmatch.filter(file_names, '*.xml'):
             file_list.append(os.path.join(root, file_name))
     return file_list
@@ -32,14 +32,15 @@ def parse_get_city_stats_resp(text):
         if len(state_code) != 2 and len(city) > 0:
             return
 
-
-        res = dm.simple_select_query(dm.conn, "info_city", "latitude, longitude", "state_code = '" + state_code + "' and city = '" + city + "' LIMIT 1")
-        lat = res[0][0]
-        lon = res[0][1]
-
+        #res = dm.simple_select_query(dm.conn, "info_city", "latitude, longitude", "state_code = '" + state_code + "' and city = '" + city + "' LIMIT 1")
+        #lat = res[0][0]
+        #lon = res[0][1]
 
         # Base of HBase key, will append bedroom count
         hbase_base_key = state_code.lower() + '-' + '_'.join(city.lower().split(' '))
+
+        # for batching to hbase
+        dom_accum = {}
 
         for dom_i in dom_list:
 
@@ -67,15 +68,16 @@ def parse_get_city_stats_resp(text):
                             col_name = 'cf:' + week_ending_date
                             val = str({'a': avg_list, 'n' : num_list })
                             
-                            table.put(key, {col_name : val} )
+                            if k_bed not in dom_accum:
+                                dom_accum[k_bed] = {}
+                            dom_accum[k_bed][col_name] = val
+
+                            #table.put(key, {col_name : val} )
 
                             # city meta-data
-                            table.put(key, {'i:city': city})
-                            table.put(key, {'i:sc':state_code})
-                            table.put(key, {'i:lat:':str(lat)})
-                            table.put(key, {'i:lon':str(lon)}) 
+                            # table.put(key, {'i:city': city, 'i:sc':state_code, 'i:lat:':str(lat),'i:lon':str(lon)})
                             # End Hbase
-
+                            
                             ## Fluentd
                             city_dict = {}
                             city_dict['state_code'] = str(state_code)
@@ -88,25 +90,30 @@ def parse_get_city_stats_resp(text):
 
                             # merge keys
                             city_dict = dict(city_dict.items() + listing_stat_dict.items())
-                            event.Event('city.all_list_stats', city_dict)
+                            #event.Event('city.all_list_stats', city_dict)
                             ## End Fluentd
 
                         except:
                             continue
+            
+        for key in dom_accum:
+            table.put(hbase_base_key + '-' + key, dom_accum[key])
 
+def get_dom_dict(dom):
+    pass
 
 sys.path.append('../common/')
 import DatabaseManager
 dm = DatabaseManager.DatabaseManager('../conf/')
 import time
-conn = happybase.Connection('localhost')
+conn = happybase.Connection('ip-172-31-11-76.us-west-1.compute.internal')
 
 conn.delete_table('city_stats_26june14', disable=True)
-time.sleep(2)
+
 conn.create_table('city_stats_26june14', {'cf': {} ,'i':{}})
 
 
-time.sleep(2)
+
 
 table = conn.table('city_stats_26june14')
 #table = conn.table('city_stats')
