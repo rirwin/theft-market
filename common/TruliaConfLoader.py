@@ -38,7 +38,8 @@ class TruliaConfLoader:
 
     def load_base_config(self, config):
         self.url = config.get("trulia", "url")
-        self.apikey = config.get("trulia", "apikey")
+        apikeys_raw = config.get("trulia","apikeys")
+        self.apikeys = list(filter(None, (x.strip() for x in apikeys_raw.splitlines())))
         self.location_library = config.get("trulia","locationLibrary")
         self.stats_library = config.get("trulia","statsLibrary")
         self.data_dir = config.get("trulia","dataDir")
