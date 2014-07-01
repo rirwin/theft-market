@@ -26,7 +26,7 @@ class TruliaInfoFetcher:
         self.location_functions_params = trulia_conf.location_functions_params
         self.location_functions = trulia_conf.location_functions
         self.url = trulia_conf.url
-        self.apikey = trulia_conf.apikey
+        self.apikey = trulia_conf.apikeys[0] # just use the first key
         self.data_dir = trulia_conf.data_dir
 
  
