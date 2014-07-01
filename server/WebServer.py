@@ -33,6 +33,18 @@ class WebServer:
             params = request.args.get('q', None)
             return RestCallHandler.handle_data_city_average_query(self.hbase_manager, self.database_manager, params)
 
+        @self.app.route('/data/zipcode/volume', methods = ['GET'])
+        def data_zipcode_volume():
+            # get data city parameters to the right of ?q= as string from flask.request
+            params = request.args.get('q', None)
+            return RestCallHandler.handle_data_zipcode_volume_query(self.hbase_manager, self.database_manager, params)
+
+        @self.app.route('/data/zipcode/average', methods = ['GET'])
+        def data_zipcode_volume():
+            # get data city parameters to the right of ?q= as string from flask.request
+            params = request.args.get('q', None)
+            return RestCallHandler.handle_data_zipcode_average_query(self.hbase_manager, self.database_manager, params)
+
 
 if __name__ == '__main__':
     
