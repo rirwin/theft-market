@@ -13,8 +13,9 @@ class HBaseManager:
 
     def init_hbase(self):
         self.conn = happybase.Connection('localhost')
-        self.city_stats_table = self.conn.table('city_stats')
-        #self.city_stats_table_26june14 = self.conn.table('city_stats_26june14')
+        #self.city_stats_table = self.conn.table('city_stats')
+        self.city_stats_table = self.conn.table('city_stats_26june14')
+        self.zipcode_stats_table = self.conn.table('zipcode_stats')
         
         
     @wrappers.general_function_handler
