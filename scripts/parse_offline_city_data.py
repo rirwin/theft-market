@@ -32,9 +32,9 @@ def parse_get_city_stats_resp(text):
         if len(state_code) != 2 and len(city) > 0:
             return
 
-        #res = dm.simple_select_query(dm.conn, "info_city", "latitude, longitude", "state_code = '" + state_code + "' and city = '" + city + "' LIMIT 1")
-        #lat = res[0][0]
-        #lon = res[0][1]
+        res = dm.simple_select_query(dm.conn, "info_city", "latitude, longitude", "state_code = '" + state_code + "' and city = '" + city + "' LIMIT 1")
+        lat = res[0][0]
+        lon = res[0][1]
 
         # Base of HBase key, will append bedroom count
         hbase_base_key = state_code.lower() + '-' + '_'.join(city.lower().split(' '))
@@ -60,8 +60,6 @@ def parse_get_city_stats_resp(text):
                     if (TruliaDataFetcher.TruliaDataFetcher.is_str_positive_int(k_bed)):
                         #print k_bed
                         try:
-                            ## HBase
-                            key = hbase_base_key + '-' + str(k_bed)
 
                             num_list = k_bed_i.getElementsByTagName('numberOfProperties')[0].firstChild.nodeValue
                             avg_list = k_bed_i.getElementsByTagName('averageListingPrice')[0].firstChild.nodeValue
@@ -72,10 +70,6 @@ def parse_get_city_stats_resp(text):
                                 dom_accum[k_bed] = {}
                             dom_accum[k_bed][col_name] = val
 
-                            #table.put(key, {col_name : val} )
-
-                            # city meta-data
-                            # table.put(key, {'i:city': city, 'i:sc':state_code, 'i:lat:':str(lat),'i:lon':str(lon)})
                             # End Hbase
                             
                             ## Fluentd
@@ -90,7 +84,7 @@ def parse_get_city_stats_resp(text):
 
                             # merge keys
                             city_dict = dict(city_dict.items() + listing_stat_dict.items())
-                            #event.Event('city.all_list_stats', city_dict)
+                            event.Event('city.all_list_stats', city_dict)
                             ## End Fluentd
 
                         except:
@@ -98,6 +92,7 @@ def parse_get_city_stats_resp(text):
             
         for key in dom_accum:
             table.put(hbase_base_key + '-' + key, dom_accum[key])
+            table.put(hbase_base_key + '-' + key, {'i:city': str(city), 'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
 
 def get_dom_dict(dom):
     pass
