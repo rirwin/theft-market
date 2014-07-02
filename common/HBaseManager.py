@@ -63,7 +63,7 @@ class HBaseManager:
         if denom == 0:
             return 0
         else:
-            return float(num/denom)
+            return round(float(num)/float(denom))
 
 
     @wrappers.general_function_handler
@@ -110,4 +110,4 @@ class HBaseManager:
         if denom == 0:
             return 0
         else:
-            return float(num/denom)
+            return round(float(num)/float(denom))
