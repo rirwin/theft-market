@@ -14,10 +14,9 @@ Table of Contents:
 
 More visibility into and organization of historical real estate listing data
 
+![alt text](img/high_level.png "High level overview of Theft Market")
 
-
-
-
+![alt text](img/pipeline_details.png "Pipeline details")
 
 ## Operation
 
