@@ -109,6 +109,7 @@ Manual Install
 OPERATION
 
 (1) get data in zip file, unzip
+(2) Run DatabaseManager to build Meta Store tables: cd common; python DatabaseManager
 (2) start "info" crawler to get US metadata
 (3) start fluentd
 (4) start thrift server
