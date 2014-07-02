@@ -158,11 +158,19 @@ def get_data(hbase_mgr, db_mgr, params_dict):
         if nearby_cities is None:
             return {"query result":"No result found","city": params_dict['city'], "state_code":params_dict['state_code']}
         
+        nearby_zipcodes = get_nearby_zipcodes_from_city(db_mgr, params_dict['state_code'], params_dict['city'])
+
+        # pad zipcodes with 0 (MySQL schema has zipcodes as ints)                                                                                                                                         
+        nearby_zipcodes = [str(100000 + int(x[0]))[1:] for x in nearby_zipcodes]
+
         if params_dict["_query_type"] == "volume":
 
             json_resp = []
             for nearby_city in nearby_cities:
                 json_resp.append(get_city_list_volume_dict(hbase_mgr, nearby_city[0], nearby_city[1], num_bedrooms, start_date, end_date))
+
+            for nearby_zipcode in nearby_zipcodes:
+                json_resp.append(get_zipcode_list_volume_dict(hbase_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
             
             return json_resp
 
@@ -171,6 +179,9 @@ def get_data(hbase_mgr, db_mgr, params_dict):
             json_resp = []
             for nearby_city in nearby_cities:
                 json_resp.append(get_city_list_average_dict(hbase_mgr, nearby_city[0], nearby_city[1], num_bedrooms, start_date, end_date))
+
+            for nearby_zipcode in nearby_zipcodes:
+                json_resp.append(get_zipcode_list_average_dict(hbase_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
             
             return json_resp
 
@@ -315,6 +326,26 @@ def get_zipcode_and_nearby_zipcodes(dm, zipcode):
 
     lat = str(zipcode_res[0][0])
     lon = str(zipcode_res[0][1])
+
+    # TODO move to configuration
+    rad_mi = '25'
+    limit = '10'
+
+    nearby_zipcode_res = dm.simple_select_query(dm.conn, "info_zipcode HAVING distance < " + rad_mi + " ORDER BY distance LIMIT 0 , " + limit, "zipcode, ( 3959 * acos( cos( radians(" + lat + ") ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(" + lon +") ) + sin( radians(" + lat + ") ) * sin( radians( latitude ) ) ) ) AS distance")
+
+    return nearby_zipcode_res
+
+
+def get_nearby_zipcodes_from_city(dm, state_code, city):
+
+    city_ = ' '.join(city.split('_'))
+    city_res = dm.simple_select_query(dm.conn, "info_city", "latitude, longitude","city = '" + city_ + "' and state_code = '" + state_code + "' limit 1")
+
+    if len(city_res) == 0:
+        return None
+
+    lat = str(city_res[0][0])
+    lon = str(city_res[0][1])
 
     # TODO move to configuration
     rad_mi = '25'
