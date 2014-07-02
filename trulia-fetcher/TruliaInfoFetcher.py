@@ -1,4 +1,4 @@
-import urllib2 # consider requests
+import urllib2
 import time
 import sys
 import os
@@ -231,15 +231,11 @@ class TruliaInfoFetcher:
         return val_str[:-1]
             
 
-# unit-test
 if __name__ == "__main__":
     import pprint
     tf = TruliaInfoFetcher('../conf/')
-    #pprint.pprint(vars(tf)) # prints all contents
-    #pprint.pprint(vars(tf.trulia_conf)) # prints all contents of tcl
-    
 
-    # must run database_manager.DatabaseManager (main) to reset tables
+    # must run database_manager.DatabaseManager (main) to reset DB tables
     
     tf.fetch_all_states()
     tf.fetch_all_counties()
