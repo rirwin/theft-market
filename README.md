@@ -21,9 +21,9 @@ With information about different geographic areas, Theft Market repeatedly calls
 
 ![alt text](img/pipeline_details.png "Pipeline details")
 
-The [TruliaDataFetcher](/trulia-fetcher/TruliaDataFetcher.py) uses [HappyBase](http://happybase.readthedocs.org/en/latest/) to put data directly into HBase when it finishes parsing a stats response.  Also, the stats are sent to HDFS using [FluentD](http://www.fluentd.org/) to the WebHDFS port on the HDFS NameNode. FluentD appends each record to a file of records in HDFS, and files are partitioned hourly as currently configured.  Each line of these record file includes a json dictionary for each record allowing flexibility in what was parsed out of the XML.
+The [TruliaDataFetcher](/trulia-fetcher/TruliaDataFetcher.py) uses [HappyBase](http://happybase.readthedocs.org/en/latest/) to put data directly into HBase when it finishes parsing a stats response.  Also, the stats are sent to HDFS using [FluentD](http://www.fluentd.org/) to the WebHDFS port on the HDFS NameNode. FluentD appends each record to a file of records in HDFS, and files are partitioned hourly as currently configured.  Each line of these record file includes a JSON object for each record allowing flexibility in what was parsed out of the XML.
 
-Subsequently, these large files in HDFS are processed by Hadoop Streaming with these [python map-reduce jobs] (https://github.com/rirwin/theft-market/tree/master/map-reduce/python).  The
+Subsequently, these large files in HDFS are processed by Hadoop Streaming with these [python map-reduce jobs](https://github.com/rirwin/theft-market/tree/master/map-reduce/python).  This translates the JSON objects to structured, tab-separated files that are used as Hive external tables.  To create the Hive tables, use the create table script; see external table [creation query](hive/city/create_ext_table_city.q) for an example to create a city table.  Following that, there are a handful of other ad hoc queries in the [hive directory](hive/city/).
 
 ## Operation
 
@@ -35,6 +35,7 @@ Subsequently, these large files in HDFS are processed by Hadoop Streaming with t
 4. start thrift server
 5. run script to read in unzipped data
 6. run mapreduce job to put in nice format
+7. Create hive external tables (todo, check zip, state)
 7. Hive script to setup external tables
 
 Step 5 enables web api
