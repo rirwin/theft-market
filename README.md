@@ -17,9 +17,6 @@ More visibility into and organization of historical real estate listing data
 ![alt text](https://github.com/rirwin/theft-market/blob/master/img/high_level.png "Logo Title Text 1")
 
 
-
-
-
 ## Operation
 
 1. get data in zip file, unzip
