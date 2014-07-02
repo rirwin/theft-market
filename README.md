@@ -23,8 +23,10 @@ With information about different geographic areas, Theft Market repeatedly calls
 
 The [TruliaDataFetcher](/trulia-fetcher/TruliaDataFetcher.py) uses [HappyBase](http://happybase.readthedocs.org/en/latest/) to put data directly into HBase when it finishes parsing a stats response.  Also, the stats are sent to HDFS using [FluentD](http://www.fluentd.org/) to the WebHDFS port on the HDFS NameNode. FluentD appends each record to a file of records in HDFS, and files are partitioned hourly as currently configured.  Each line of these record file includes a JSON object for each record allowing flexibility in what was parsed out of the XML.
 
-Subsequently, these large files in HDFS are processed by Hadoop Streaming with these [python map-reduce jobs](https://github.com/rirwin/theft-market/tree/master/map-reduce/python).  This translates the JSON objects to structured, tab-separated files that are used as Hive external tables.  To create the Hive tables, use the create table script; see external table [creation query](hive/city/create_ext_table_city.q) for an example to create a city table.  Following that, there are a handful of other ad hoc queries in the [hive directory](hive/city/).
+Subsequently, these large files in HDFS are processed by Hadoop Streaming with these Python [map-reduce jobs](https://github.com/rirwin/theft-market/tree/master/map-reduce/python).  This translates the JSON objects to structured, tab-separated files that are used as Hive external tables.  To create the Hive tables, use the create table script; see external table [creation query](hive/city/create_ext_table_city.q) for an example to create a city table. One could also write Pig, Cascading, etc. scripts based on the file structure from nice structure of the Hadoop Streaming processing mentioned above.  Following that, there are a handful of other ad hoc queries in the [hive directory](hive/city/).  This concludes progress on the batch processing, deep-dive analytics layer of Theft Market.
 
+![alt text](img/web_server.png "Web server details")
+The web server
 ## Operation
 
 1. get data in zip file, unzip
