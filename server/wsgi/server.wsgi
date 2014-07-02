@@ -7,5 +7,5 @@ server = WebServer('/home/ubuntu/theft-market')
 _application = server.app
 
 def application(environ, start_response):
-    response_headers = [('Content-Type', 'text/plain')]
+    response_headers = [('Content-Type', 'application/json')]
     return _application(environ, start_response)
