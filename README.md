@@ -14,7 +14,7 @@ Table of Contents:
 
 More visibility into and organization of historical real estate listing data
 
-![alt text](https://github.com/rirwin/theft-market/blob/master/img/high_level.png "Logo Title Text 1")
+![alt text](img/high_level.png "High level overview of Theft Market")
 
 
 ## Operation
