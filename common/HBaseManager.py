@@ -28,7 +28,9 @@ class HBaseManager:
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
 
-        filtered_keys = [k for k in data.keys() if k.startswith('cf:') and datetime.datetime.strptime(k[3:],"%Y-%m-%d") < end_datetime and datetime.datetime.strptime(k[3:],"%Y-%m-%d") > start_datetime]
+        filtered_keys = [k for k in data.keys() if k.startswith('cf:') \
+                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") < end_datetime \
+                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") > start_datetime]
 
         sum_ = 0
         for key in filtered_keys:
@@ -49,7 +51,9 @@ class HBaseManager:
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
 
         # Pythonic way to extract relevant columns of row
-        filtered_keys = [k for k in data.keys() if k.startswith('cf:') and datetime.datetime.strptime(k[3:],"%Y-%m-%d") < end_datetime and datetime.datetime.strptime(k[3:],"%Y-%m-%d") > start_datetime]
+        filtered_keys = [k for k in data.keys() if k.startswith('cf:') \
+                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") < end_datetime \
+                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") > start_datetime]
 
         num = 0
         denom = 0
@@ -72,7 +76,9 @@ class HBaseManager:
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
 
-        filtered_keys = [k for k in data.keys() if k.startswith('cf:') and datetime.datetime.strptime(k[3:],"%Y-%m-%d") < end_datetime and datetime.datetime.strptime(k[3:],"%Y-%m-%d") > start_datetime]
+        filtered_keys = [k for k in data.keys() if k.startswith('cf:') \
+                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") < end_datetime \
+                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") > start_datetime]
 
         sum_ = 0
         for key in filtered_keys:
@@ -92,7 +98,9 @@ class HBaseManager:
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
 
         # Pythonic way to extract relevant columns of row
-        filtered_keys = [k for k in data.keys() if k.startswith('cf:') and datetime.datetime.strptime(k[3:],"%Y-%m-%d") < end_datetime and datetime.datetime.strptime(k[3:],"%Y-%m-%d") > start_datetime]
+        filtered_keys = [k for k in data.keys() if k.startswith('cf:') \
+                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") < end_datetime \
+                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") > start_datetime]
 
         num = 0
         denom = 0
