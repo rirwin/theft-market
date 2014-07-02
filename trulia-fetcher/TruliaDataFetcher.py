@@ -360,10 +360,15 @@ class TruliaDataFetcher:
        
         head_dom = minidom.parseString(text)
         dom_list = head_dom.getElementsByTagName('listingStat')
-        state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
-        zipcode = head_dom.getElementsByTagName('zipCode')[0].firstChild.nodeValue
+
+        try:
+            state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
+            zipcode = head_dom.getElementsByTagName('zipCode')[0].firstChild.nodeValue
+        except:
+            return
 
         print zipcode, state_code
+
         # No key, do not log
         if len(state_code) != 2 and len(zipcode) > 0:
             return
@@ -462,16 +467,9 @@ class TruliaDataFetcher:
 if __name__ == "__main__":
 
     tdf = TruliaDataFetcher('../conf/')
-    #pprint.pprint(vars(tf)) # prints all contents
-    #pprint.pprint(vars(tf.trulia_conf)) # prints all contents of tcl
-    
-    
-    #tdf.init_kafka()
-    #tdf.fetch_all_states_data()
-    #tdf.fetch_all_cities_in_state_data('WI')
-    
 
-    #tdf.fetch_all_cities_all_states_data()
+    tdf.fetch_all_states_data()
+    tdf.fetch_all_cities_all_states_data()
     tdf.fetch_all_zipcodes_data()
     
     #Debugging section
