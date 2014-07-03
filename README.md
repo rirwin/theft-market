@@ -28,7 +28,7 @@ Subsequently, these large files in HDFS are processed by Hadoop Streaming with t
 
 ![alt text](img/web_server.png "Web server details")
 
-The user is exposed to a simple (read-only) REST API for getting statistics about particular geographic areas.  The REST call is handed to a combination of Apache (server), WSGI, and Flask.  The [Flask](server/WebServer.py) has an instance to an object that handles calls to the [MySQL manager](common/DatabaseManager.py) and an instance to [HBase manager](common/HBaseManager.py).  Apache runs multiple Flask threads, with each thread having its own MySQL and HBase manager. The Flask web server routes calls to functions in the [RestCallHandler](server/RestCallHandler.py). 
+The user is exposed to a simple (read-only) REST API for getting statistics about particular geographic areas.  The REST call is handed to a combination of Apache (server), WSGI, and Flask.  The [Flask](server/WebServer.py) has an instance to an object that handles calls to the [MySQL manager](common/DatabaseManager.py) and an instance to [HBase manager](common/HBaseManager.py).  Apache runs multiple Flask threads, with each thread having its own MySQL and HBase manager. The Flask web server routes calls to functions in the [RestCallHandler](server/RestCallHandler.py).  The RestCallHandler coordinates a combination of MySQL and HBase queries to rapidly answer the REST call (see the diagram above).  The API is described below.
 
 ## REST API
 
@@ -48,7 +48,7 @@ where volume is the aggregation of listings over the time period and average is 
 For city queries provide:
 
 - state_code (XX)
-- city (<city name>) (some browsers may need a %20 inserted for spaces in the city name) 
+- city (<city name>) (some browsers may need a '%20' inserted for spaces in the city name) 
 
 For zipcode queries provide:
 
