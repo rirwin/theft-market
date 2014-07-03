@@ -49,9 +49,8 @@ Manual Install
 
 3.  Python packages
   
-      $ pip packages (flask)
-      $ sudo pip install flask
-      $ sudo pip install happybase
+        $ sudo pip install flask
+        $ sudo pip install happybase
 
 
 4.  FluentD configuration
@@ -59,45 +58,43 @@ Manual Install
     On CDH5 Hue takes port 8888, which conflicts with td-agent's default configuration.
     Check to make sure no service is using port 8118.  This command should return nothing
     
-      $ netstat -aon | grep ":8118"
+        $ netstat -aon | grep ":8118"
     
     If it doesn't return empty, find another number other than 8118 to use.
    
     WebHDFS configuration
     save conf file just in case, and overwrite configuration
     
-      $ sudo cp /etc/td-agent/td-agent.conf /etc/td-agent/td-agent.conf.bak
-      $ sudo cp theft-market/conf/fluentd/td-agent.conf /etc/td-agent/td-agent.conf
+        $ sudo cp /etc/td-agent/td-agent.conf /etc/td-agent/td-agent.conf.bak
+        $ sudo cp theft-market/conf/fluentd/td-agent.conf /etc/td-agent/td-agent.conf
     
     Restart td-agent
     
-      $ sudo /etc/init.d/td-agent restart
+        $ sudo /etc/init.d/td-agent restart
         
     This file enabled WebHDFS and needs the cluster a webhdfs plugin
     sudo gem install fluent-plugin-webhdfs    I think this doesn't work?? Necessary or not??
 
     Hand edit and add to hdfs-site.xml file
     
-      $ sudo vi /etc/hadoop/conf/hdfs-site.xml
+        $ sudo vi /etc/hadoop/conf/hdfs-site.xml
     
     Add webhdfs property tags:
     
-      <property> <!--added for fluentd webhdfs -->
-        <name>dfs.webhdfs.enabled</name>
-        <value>true</value>
-      </property>
-      <property> <!--added for fluentd webhdfs -->
-        <name>dfs.support.append</name>
-        <value>true</value>
-      </property>
-      <property> <!--added for fluentd webhdfs -->
-        <name>dfs.support.broken.append</name>
-        <value>true</value>
-      </property>
+        <property> <!--added for fluentd webhdfs -->
+          <name>dfs.webhdfs.enabled</name>
+          <value>true</value>
+        </property>
+        <property> <!--added for fluentd webhdfs -->
+          <name>dfs.support.append</name>
+          <value>true</value>
+        </property>
+          <property> <!--added for fluentd webhdfs -->
+          <name>dfs.support.broken.append</name>
+          <value>true</value>
+        </property>
 
-    An example is found in 'theft-market/hdfs/hdfs-site.xml', but do not copy the whole file
-
-    Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
+    An example is found in 'theft-market/hdfs/hdfs-site.xml', but do not copy the whole file because IP addresses are different (among other things). Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
 
 
 5.  MySQL config
