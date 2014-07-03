@@ -77,6 +77,11 @@ http://54.193.52.251/data/zipcode/volume?q={"zipcode":"02458","num_bedrooms":3,"
 Step 5 enables web api
 Step 6 enables hive queries
 
+## Install
+
+See the [install directions](INSTALL.md)
+
+
 
 ## Directory description
 
