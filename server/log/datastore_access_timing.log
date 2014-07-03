@@ -1,0 +1,240 @@
+INFO:root:Entering <wrappers.general_function_handler object at 0x7f00c48d2410>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7f00c48e5710>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7f00c440e5d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c495bd10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c495be90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c495bd10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c495be90>
+INFO:root:-------------test info-----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c495bf90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c495bed0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c495bf90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c495bed0>
+INFO:root:-------------test info-----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c496de50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c496d650>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c496de50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f00c496d650>
+INFO:root:-------------test info-----------------
+INFO:root:Entering <wrappers.general_function_handler object at 0x7fc9b88d2410>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7fc9b88e5710>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7fc9b840e5d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fc9b895cd10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fc9b895ce90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fc9b895cd10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fc9b895ce90>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.000992059707642s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000818967819214s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.238966941833s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took:0.191931962967s
+INFO:root:Total time took: 0.433456897736s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.general_function_handler object at 0x7f5b908d6410>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7f5b908e9710>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7f5b904105d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095ed10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095ee90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095ed10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095ee90>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00100111961365s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.00074291229248s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.232179164886s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.199162960052s
+INFO:root:Total time took: 0.433792114258s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095ef90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095eed0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095ef90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095eed0>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00141716003418s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.00102996826172s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.321402072906s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.195431947708s
+INFO:root:Total time took: 0.519916057587s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b90970650>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b90970710>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b90970e50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b90970650>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7f5b808d2410>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7f5b808e5710>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7f5b8040e5d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8095cd50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8095ced0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8095ce50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8095cf10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8095ce50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8095cf10>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00119090080261s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000916004180908s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.208290100098s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.154731988907s
+INFO:root:Total time took: 0.36581993103s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096bcd0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096be10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096bcd0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096be10>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00102591514587s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000820159912109s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.1479408741s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.119119167328s
+INFO:root:Total time took: 0.269598007202s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096bf50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096b9d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096bf50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096b9d0>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00110602378845s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000794887542725s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.148710012436s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.125082015991s
+INFO:root:Total time took: 0.276382923126s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096b950>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096b4d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096b950>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096b4d0>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00106000900269s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000890016555786s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.15473985672s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.165539979935s
+INFO:root:Total time took: 0.322745084763s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096bb50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096bf50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096b750>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096bf50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096b750>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.0346269607544s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.0551011562347s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.121018886566s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.0746750831604s
+INFO:root:Total time took: 0.286139965057s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b90970510>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096bbd0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b90970f50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b909705d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b90970f50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b909705d0>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00108504295349s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000834941864014s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.129415035248s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.0741930007935s
+INFO:root:Total time took: 0.20614695549s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096b990>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096bd10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096b990>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b8096bd10>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00120091438293s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000832080841064s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.161159992218s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.125104904175s
+INFO:root:Total time took: 0.288797855377s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095ef10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095eed0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095ef10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b9095eed0>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.0010838508606s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000807046890259s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.147393941879s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.117393016815s
+INFO:root:Total time took: 0.267249822617s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60032110>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60032150>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60032110>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60032150>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00113391876221s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000805139541626s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.192954063416s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.115726947784s
+INFO:root:Total time took: 0.311517953873s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60029e90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60029e50>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60029e90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60029e50>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00104403495789s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000823020935059s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.14531993866s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.0991990566254s
+INFO:root:Total time took: 0.247009992599s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60029590>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60029dd0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60029590>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60029dd0>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.00100708007812s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000750064849854s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.0700960159302s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.023090839386s
+INFO:root:Total time took: 0.0953121185303s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b600321d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60032b90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b600321d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60032b90>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.0346231460571s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.0485260486603s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.0355358123779s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.0328440666199s
+INFO:root:Total time took: 0.151861190796s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60032190>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b600323d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b60032190>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7f5b600323d0>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.0342979431152s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.0547349452972s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.0249769687653s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.0288209915161s
+INFO:root:Total time took: 0.143159866333s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.general_function_handler object at 0x7fdcc48d4410>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7fdcc48e8710>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7fdcc440e5d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fdcc495cd10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fdcc495ce90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fdcc495cd10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fdcc495ce90>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.000890970230103s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.000725030899048s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.0251760482788s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.0290699005127s
+INFO:root:Total time took: 0.0561339855194s
+INFO:root:------------- Done with Data Warehouse Access -----------------
+INFO:root:Entering <wrappers.general_function_handler object at 0x7fdcd88d4410>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7fdcd88e8710>
+INFO:root:Entering <wrappers.general_function_handler object at 0x7fdcd84105d0>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fdcd895ed10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fdcd895ee90>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fdcd895ed10>
+INFO:root:Entering <wrappers.database_function_handler object at 0x7fdcd895ee90>
+INFO:root:------------- Start Data Warehouse Access -----------------
+INFO:root:get nearby cities from MySQL (GPS calculations) took: 0.0343158245087s
+INFO:root:get nearby zipcodes from MySQL (GPS calculations) took: 0.0477991104126s
+INFO:root:get city average listings from HBase (10 row lookup and manipulation) took: 0.0230579376221s
+INFO:root:get zipcode average listings from HBase (10 row lookup and manipulation) took: 0.0407021045685s
+INFO:root:Total time took: 0.146242856979s
+INFO:root:------------- Done with Data Warehouse Access -----------------
