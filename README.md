@@ -6,8 +6,9 @@
 Table of Contents:
 
 1. Introduction
-2. Operation 
-3. Directory descriptions
+2. REST API
+3. Operation 
+4. Directory descriptions
 
 ## Introduction
 
@@ -26,14 +27,35 @@ The [TruliaDataFetcher](/trulia-fetcher/TruliaDataFetcher.py) uses [HappyBase](h
 Subsequently, these large files in HDFS are processed by Hadoop Streaming with these Python [map-reduce jobs](https://github.com/rirwin/theft-market/tree/master/map-reduce/python).  This translates the JSON objects to structured, tab-separated files that are used as Hive external tables.  To create the Hive tables, use the create table script; see external table [creation query](hive/city/create_ext_table_city.q) for an example to create a city table. One could also write Pig, Cascading, etc. scripts based on the file structure from nice structure of the Hadoop Streaming processing mentioned above.  Following that, there are a handful of other ad hoc queries in the [hive directory](hive/city/).  This concludes progress on the batch processing, deep-dive analytics layer of Theft Market.
 
 ![alt text](img/web_server.png "Web server details")
-The user is exposed to a simple REST API for getting statistics about particular geographic areas.  The format is straighforward, the caller passes a dictionary to a base url corresponding to the query interest; here are the following urls supported:
+The user is exposed to a simple REST API for getting statistics about particular geographic areas.  
+
+## REST API
+
+The format is straighforward, the caller passes a dictionary (described below) to a base url corresponding to the query interest; here are the following urls supported:
 
 - /data/city/volume 
 - /data/city/average
 - /data/zipcode/volume
 - /data/zipcode/average
 
-where volume is the listing volume for number of listings 
+where volume is the aggregation of listings over the time period and average is the average listing price over the time period.  The dictionary passes the remainder of the search parameters.  All dictionaries contains the following key-value pairs:
+
+- start_date (YYYY-MM-DD)
+- end_date (YYYY-MM-DD)
+- num_bedrooms (positive integer)
+
+For city queries provide:
+
+- state_code (XX)
+- city (<city name>) (some browsers may need a %20 inserted for spaces in the city name) 
+
+For zipcode queries provide:
+
+- zipcode (XXXXX)
+
+A full example 
+
+
 ## Operation
 
 1. get data in zip file, unzip
