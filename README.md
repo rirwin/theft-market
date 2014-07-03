@@ -28,8 +28,7 @@ Subsequently, these large files in HDFS are processed by Hadoop Streaming with t
 
 ![alt text](img/web_server.png "Web server details")
 
-The user is exposed to a simple REST API for getting statistics about particular geographic areas.  The REST call is handed to a combination of Apache (server), WSGI, and Flask.  Calls are routed in the [Flask](server/WebServer.py) application to calls in [RestCallHandler](server/RestCallHandler.py).
-
+The user is exposed to a simple (read-only) REST API for getting statistics about particular geographic areas.  The REST call is handed to a combination of Apache (server), WSGI, and Flask.  The [Flask](server/WebServer.py) has an instance to an object that handles calls to the [MySQL manager](common/DatabaseManager.py) and an instance to [HBase manager](common/HBaseManager.py).  Apache runs multiple Flask threads, with each thread having its own MySQL and HBase manager. The Flask web server routes calls to functions in the [RestCallHandler](server/RestCallHandler.py). 
 
 ## REST API
 
