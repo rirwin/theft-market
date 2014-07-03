@@ -4,15 +4,13 @@ Installation/Configuration of Theft Market
 **Documentation is a work in progress**
 
 
-Scripted Install
-
-   To be developed
+Scripted Install - To be developed
 
 
 Manual Install
 
 1.  Get AWS node and CDH5 cluster setup 
-    Platform tested on 1 large (for master) and 3 medium that have magnetic spining disks.
+    Platform tested on 1 large (for master) and 3 medium that have magnetic spinning disks.
     We used ubuntu 12.04 images.  I've tried to include the docs on how to get it running 
     on CentOS or AWS Linux AMI, but it's not fully tested.
 
@@ -118,16 +116,6 @@ Manual Install
     
       $ sudo service apache2 restart
 
-OPERATION
-
-1. get data in zip file, unzip
-2. Run DatabaseManager to build Meta Store tables: cd common; python DatabaseManager
-3. start "info" crawler to get US metadata
-4. start fluentd
-5. start thrift server
-6. run script to read in unzipped data
-7. run mapreduce job to put in nice format
-8. Hive script to setup external tables
 
 Step 6. enables web api
 Step 8. enables hive queries
