@@ -4,95 +4,112 @@ Installation/Configuration of Theft Market
 **Documentation is a work in progress**
 
 
-Scripted Install
-
-   To be developed
+Scripted Install - To be developed
 
 
 Manual Install
 
-(0) Get AWS node and CDH5 cluster setup 
-    Platform tested on 1 large (for master) and 3 medium that have magnetic spining disks.
+1.  Get AWS node and CDH5 cluster setup 
+    Platform tested on 1 large (for master) and 3 medium that have magnetic spinning disks.
     We used ubuntu 12.04 images.  I've tried to include the docs on how to get it running 
     on CentOS or AWS Linux AMI, but it's not fully tested.
 
 
-(1)
-    # Ubuntu
-    apt-get/yum packages (apache2, mysql)
-    sudo apt-get install python-dev python-pip
-    sudo apt-get install mysql-client mysql-server	# remember to set master password
-    sudo apt-get install apache2 libapache2-mod-wsgi
-    sudo apt-get install rubygems
-
-    # Fluentd's install script (provided by fluentd)
-    curl -L http://toolbelt.treasuredata.com/sh/install-ubuntu-precise.sh | sh
-    sudo /etc/init.d/td-agent status
-    # Don't worry if not running, we'll fix later
-
-
-    # Cent-OS 
-    sudo yum install python-devel python-pip
-    sudo yum install httpd mod_wsgi		# equivalent package of apache2 and wsgi mod in centos
-    sudo yum install rubygems.noarc    
-
-    # Fluentd install script (provided by fluentd)
-    curl -L http://toolbelt.treasuredata.com/sh/install-redhat.sh | sh
-    sudo /etc/init.d/td-agent status
-    # Don't worry if not running, we'll fix later
-        
-
-(2) pip packages (flask)
-    sudo pip install flask
-    sudo pip install happybase
-
-
-(3) FluentD configuration
-
-    # On CDH5 Hue takes port 8888, which conflicts with td-agent's default configuration.
-    # Check to make sure no service is using port 8118.  This command should return nothing
-    netstat -aon | grep ":8118"
-    # If it doesn't return empty, find another number other than 8118 to use.
-   
-    # WebHDFS configuration
-    # save conf file just in case, and overwrite configuration
-    sudo cp /etc/td-agent/td-agent.conf /etc/td-agent/td-agent.conf.bak
-    sudo cp theft-market/conf/fluentd/td-agent.conf /etc/td-agent/td-agent.conf
+2. OS Packages
+ 
+  a.  Ubuntu
     
-    # Restart td-agent
-    sudo /etc/init.d/td-agent restart
+      $ sudo apt-get install python-dev python-pip
+      $ sudo apt-get install mysql-client mysql-server	# remember to set master password
+      $ sudo apt-get install apache2 libapache2-mod-wsgi
+      $ sudo apt-get install rubygems
+
+    Fluentd's install script (provided by fluentd)
+    
+      $ curl -L http://toolbelt.treasuredata.com/sh/install-ubuntu-precise.sh | sh
+      $ sudo /etc/init.d/td-agent status
+    
+    Don't worry if not running, we'll fix later
+
+  b.  Cent-OS 
+    
+      $ sudo yum install python-devel python-pip
+      $ sudo yum install httpd mod_wsgi		# equivalent package of apache2 and wsgi mod in centos
+      $ sudo yum install rubygems.noarc    
+
+    Fluentd install script (provided by fluentd)
+    
+      $ curl -L http://toolbelt.treasuredata.com/sh/install-redhat.sh | sh
+      $ sudo /etc/init.d/td-agent status
+    
+    Don't worry if not running, we'll fix later
         
-    # This file enabled WebHDFS and needs the cluster a webhdfs plugin
-    #sudo gem install fluent-plugin-webhdfs   # I think this doesn't work?? Necessary or not??
 
-    # Hand edit and add to hdfs-site.xml file
-    sudo vi /etc/hadoop/conf/hdfs-site.xml 
+3.  Python packages
+  
+        $ sudo pip install flask
+        $ sudo pip install happybase
+
+
+4.  FluentD configuration
+
+    On CDH5 Hue takes port 8888, which conflicts with td-agent's default configuration.
+    Check to make sure no service is using port 8118.  This command should return nothing
+    
+        $ netstat -aon | grep ":8118"
+    
+    If it doesn't return empty, find another number other than 8118 to use.
+   
+    WebHDFS configuration
+    save conf file just in case, and overwrite configuration
+    
+        $ sudo cp /etc/td-agent/td-agent.conf /etc/td-agent/td-agent.conf.bak
+        $ sudo cp theft-market/conf/fluentd/td-agent.conf /etc/td-agent/td-agent.conf
+    
+    Restart td-agent
+    
+        $ sudo /etc/init.d/td-agent restart
+        
+    This file enabled WebHDFS and needs the cluster a webhdfs plugin
+    sudo gem install fluent-plugin-webhdfs    I think this doesn't work?? Necessary or not??
+
+    Hand edit and add to hdfs-site.xml file
+    
+        $ sudo vi /etc/hadoop/conf/hdfs-site.xml
+    
     Add webhdfs property tags:
-    <property> <!--added for fluentd webhdfs -->
-      <name>dfs.webhdfs.enabled</name>
-      <value>true</value>
-    </property>
-    <property> <!--added for fluentd webhdfs -->
-      <name>dfs.support.append</name>
-      <value>true</value>
-    </property>
-    <property> <!--added for fluentd webhdfs -->
-      <name>dfs.support.broken.append</name>
-      <value>true</value>
-    </property>
+    
+        <property> <!--added for fluentd webhdfs -->
+          <name>dfs.webhdfs.enabled</name>
+          <value>true</value>
+        </property>
+        <property> <!--added for fluentd webhdfs -->
+          <name>dfs.support.append</name>
+          <value>true</value>
+        </property>
+          <property> <!--added for fluentd webhdfs -->
+          <name>dfs.support.broken.append</name>
+          <value>true</value>
+        </property>
 
-    An example is found in 'theft-market/hdfs/hdfs-site.xml', but do not copy the whole file
-
-    Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
+    An example is found in 'theft-market/hdfs/hdfs-site.xml', but do not copy the whole file because IP addresses are different (among other things). Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
 
 
-(4) MySQL config
+5.  FluentD Client
 
+    Create an extern directory and clone fluent-logger-python
+      
+        $ cd theft-market
+        $ mkdir extern; cd extern
+        $ git clone https://github.com/fluent/fluent-logger-python.git
+
+6.  MySQL config
+ 
     Configure access to MySQL and match this to the file in theft-market/conf/theft-metastore.conf
     TODO fill in details to help out those unfamiliar with this.
 
 
-(5) Flask/Apache configuration
+7.  Flask/Apache configuration
 
     Apache server:
     Copy the file from conf/apache2/default to /etc/apache2/sites-available/default
@@ -104,20 +121,11 @@ Manual Install
     accordingly.
 
     Restart Apache
-    sudo service apache2 restart
+    
+      $ sudo service apache2 restart
 
-OPERATION
 
-(1) get data in zip file, unzip
-(2) Run DatabaseManager to build Meta Store tables: cd common; python DatabaseManager
-(2) start "info" crawler to get US metadata
-(3) start fluentd
-(4) start thrift server
-(5) run script to read in unzipped data
-(6) run mapreduce job to put in nice format
-(7) Hive script to setup external tables
-
-Step (5) enables web api
-Step (6) enables hive queries
+Step 6. enables web api
+Step 8. enables hive queries
 
 
