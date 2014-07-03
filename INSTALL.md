@@ -17,7 +17,7 @@ Manual Install
     on CentOS or AWS Linux AMI, but it's not fully tested.
 
 
-2.
+2. OS Packages
 a)  Ubuntu
     apt-get/yum packages (apache2, mysql)
     sudo apt-get install python-dev python-pip
@@ -25,22 +25,22 @@ a)  Ubuntu
     sudo apt-get install apache2 libapache2-mod-wsgi
     sudo apt-get install rubygems
 
-    #Fluentd's install script (provided by fluentd)
+    Fluentd's install script (provided by fluentd)
     curl -L http://toolbelt.treasuredata.com/sh/install-ubuntu-precise.sh | sh
     sudo /etc/init.d/td-agent status
-    #Don't worry if not running, we'll fix later
+    Don't worry if not running, we'll fix later
 
-
-2.
-b) # Cent-OS 
+b)  Cent-OS 
+    
     sudo yum install python-devel python-pip
     sudo yum install httpd mod_wsgi		# equivalent package of apache2 and wsgi mod in centos
     sudo yum install rubygems.noarc    
 
-    # Fluentd install script (provided by fluentd)
+    Fluentd install script (provided by fluentd)
+    
     curl -L http://toolbelt.treasuredata.com/sh/install-redhat.sh | sh
     sudo /etc/init.d/td-agent status
-    # Don't worry if not running, we'll fix later
+    Don't worry if not running, we'll fix later
         
 
 3.  pip packages (flask)
