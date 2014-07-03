@@ -27,7 +27,9 @@ The [TruliaDataFetcher](/trulia-fetcher/TruliaDataFetcher.py) uses [HappyBase](h
 Subsequently, these large files in HDFS are processed by Hadoop Streaming with these Python [map-reduce jobs](https://github.com/rirwin/theft-market/tree/master/map-reduce/python).  This translates the JSON objects to structured, tab-separated files that are used as Hive external tables.  To create the Hive tables, use the create table script; see external table [creation query](hive/city/create_ext_table_city.q) for an example to create a city table. One could also write Pig, Cascading, etc. scripts based on the file structure from nice structure of the Hadoop Streaming processing mentioned above.  Following that, there are a handful of other ad hoc queries in the [hive directory](hive/city/).  This concludes progress on the batch processing, deep-dive analytics layer of Theft Market.
 
 ![alt text](img/web_server.png "Web server details")
-The user is exposed to a simple REST API for getting statistics about particular geographic areas.  
+
+The user is exposed to a simple REST API for getting statistics about particular geographic areas.  The REST call is handed to a combination of Apache (server), WSGI, and Flask.  Calls are routed in the [Flask](server/WebServer.py) application to calls in [RestCallHandler](server/RestCallHandler.py).
+
 
 ## REST API
 
