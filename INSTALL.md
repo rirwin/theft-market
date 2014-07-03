@@ -18,7 +18,7 @@ Manual Install
 
 
 2. OS Packages
-a)  Ubuntu
+  a.  Ubuntu
     apt-get/yum packages (apache2, mysql)
     sudo apt-get install python-dev python-pip
     sudo apt-get install mysql-client mysql-server	# remember to set master password
@@ -30,7 +30,7 @@ a)  Ubuntu
     sudo /etc/init.d/td-agent status
     Don't worry if not running, we'll fix later
 
-b)  Cent-OS 
+  b.  Cent-OS 
     
     sudo yum install python-devel python-pip
     sudo yum install httpd mod_wsgi		# equivalent package of apache2 and wsgi mod in centos
