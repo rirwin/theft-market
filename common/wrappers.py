@@ -1,5 +1,6 @@
 import logging
 import sys
+logging.basicConfig(filename='/home/ubuntu/theft-market/server/log/datastore_access_timing.log',level=logging.INFO)
 
 class logger(object):
     def __init__(self, func):

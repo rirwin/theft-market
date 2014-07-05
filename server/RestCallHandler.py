@@ -215,11 +215,11 @@ def get_data(hbase_mgr, db_mgr, params_dict):
         
         nearby_zipcodes = get_zipcode_and_nearby_zipcodes(db_mgr, params_dict['zipcode'])
     
-        # pad zipcodes with 0 (MySQL schema has zipcodes as ints)
-        nearby_zipcodes = [str(100000 + int(x[0]))[1:] for x in nearby_zipcodes]
-    
         if nearby_zipcodes is None:
             return {"query result":"No result found","zipcode": params_dict['zipcode']}
+
+        # pad zipcodes with 0 (MySQL schema has zipcodes as ints)
+        nearby_zipcodes = [str(100000 + int(x[0]))[1:] for x in nearby_zipcodes]
         
         if params_dict["_query_type"] == "volume":
 
