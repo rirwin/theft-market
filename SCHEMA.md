@@ -47,3 +47,14 @@
      |  394 | Agoura Hills | CA         | 34.1503125002187 | -118.754038000766 |
      +------+--------------+------------+------------------+-------------------+
 
+
+3. The files in HDFS are tab-separated.  These files are create from the JSON schema in 2a. via a simple mapreduce job (i.e., [city_cols_mapper.py](map-reduce/python/city_cols_mapper.py)).  The format below enables hive external tables.  The columns are (state code, city, number of bedrooms, week ending date, average price, number of listings):
+
+
+        wy	afton	5	2009-08-08	216000	1
+        wy	afton	4	2009-08-08	249475	4
+        wy	afton	3	2009-08-08	282671	7
+        wy	afton	2	2009-08-08	150000	1
+        wy	afton	1	2009-08-08	165429	2
+     
+
