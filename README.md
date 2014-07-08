@@ -10,7 +10,7 @@ Table of Contents:
 3. Operation 
 4. Directory descriptions
 5. Install
-6. Schema and code samples
+6. [Schema and code samples](README.md#L89)
 
 ## Introduction
 
