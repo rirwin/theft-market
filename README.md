@@ -8,11 +8,10 @@ Table of Contents:
 1. Introduction
 2. REST API
 3. Operation 
-4. Directory descriptions
-5. Install
-6. Schema and code samples
+4. Install
+5. Schema and code samples
 
-## Introduction
+## 1. Introduction
 
 More visibility into and organization of historical real estate listing data.  I leverage Trulia's API to gather their historic data.  See Trulia's [developer page](http://developer.trulia.com/docs/read/Home) for an overview of their API.
 
@@ -33,7 +32,7 @@ Subsequently, these large files in HDFS are processed by Hadoop Streaming with t
 The user is exposed to a simple (read-only) REST API for getting statistics about particular geographic areas.  The REST call is handed to a combination of Apache (server), WSGI, and Flask.  The [Flask](server/WebServer.py) has an instance to an object that handles calls to the [MySQL manager](common/DatabaseManager.py) and an instance to [HBase manager](common/HBaseManager.py).  Apache runs multiple Flask threads, with each thread having its own MySQL and HBase manager. The Flask web server routes calls to functions in the [RestCallHandler](server/RestCallHandler.py).  The RestCallHandler coordinates a combination of MySQL and HBase queries to rapidly answer the REST call (see the diagram above).  The API is described below.
 
 
-## REST API
+## 2. REST API
 
 The format is straighforward, the caller passes a dictionary (described below) to a base url corresponding to the query interest; here are the following urls supported:
 
@@ -64,7 +63,7 @@ A full example of a zipcode volume listings call:
 http://54.193.52.251/data/zipcode/volume?q={"zipcode":"02458","num_bedrooms":3,"start_date":"2010-01-01","end_date":"2014-01-01"}
 
 
-## Operation
+## 3. Operation
 
 1. get data in zip file, unzip
 2. run database manager to reset database tables
@@ -80,10 +79,10 @@ http://54.193.52.251/data/zipcode/volume?q={"zipcode":"02458","num_bedrooms":3,"
 Step 5 enables web api
 Step 6 enables hive queries
 
-## Install
+## 4. Install
 
 See the [install directions](INSTALL.md) for installation instructions
 
-## Schema and Code Sample
+## 5. Schema and Code Sample
 
 See the [schema descriptions and code samples](SCHEMA.md) for description on the schemas and example code snippets.
