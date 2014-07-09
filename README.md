@@ -10,7 +10,7 @@ Table of Contents:
 3. Operation 
 4. Directory descriptions
 5. Install
-6. [Schema and code samples](README.md#L89)
+6. Schema and code samples
 
 ## Introduction
 
@@ -86,4 +86,4 @@ See the [install directions](INSTALL.md) for installation instructions
 
 ## Schema and Code Sample
 
-See the [schema descriptions](SCHEMA.md) for description on the schema's and for code samples links.
+See the [schema descriptions and code samples](SCHEMA.md) for description on the schemas and example code snippets.
