@@ -57,10 +57,10 @@ For zipcode queries provide:
 - zipcode (XXXXX)
 
 A full example of a city average listings call:
-http://54.193.52.251/data/city/average?q={"state_code":"CA","city":"san%20francisco","num_bedrooms":7,"start_date":"2010-01-01","end_date":"2014-01-01"}
+http://54.193.52.251:5000/data/city/average?q={"state_code":"CA","city":"san%20francisco","num_bedrooms":7,"start_date":"2010-01-01","end_date":"2014-01-01"}
 
 A full example of a zipcode volume listings call:
-http://54.193.52.251/data/zipcode/volume?q={"zipcode":"02458","num_bedrooms":3,"start_date":"2010-01-01","end_date":"2014-01-01"}
+http://54.193.52.251:5000/data/zipcode/volume?q={"zipcode":"02458","num_bedrooms":3,"start_date":"2010-01-01","end_date":"2014-01-01"}
 
 
 ## 3. Operation
