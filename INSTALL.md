@@ -95,13 +95,21 @@ Manual Install
     An example is found in 'theft-market/hdfs/hdfs-site.xml', but do not copy the whole file because IP addresses are different (among other things). Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
 
 
-5.  MySQL config
+5.  FluentD Client
+
+    Create an extern directory and clone fluent-logger-python
+      
+        $ cd theft-market
+        $ mkdir extern; cd extern
+        $ git clone https://github.com/fluent/fluent-logger-python.git
+
+6.  MySQL config
  
     Configure access to MySQL and match this to the file in theft-market/conf/theft-metastore.conf
     TODO fill in details to help out those unfamiliar with this.
 
 
-6.  Flask/Apache configuration
+7.  Flask/Apache configuration
 
     Apache server:
     Copy the file from conf/apache2/default to /etc/apache2/sites-available/default

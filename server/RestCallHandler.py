@@ -1,5 +1,9 @@
 import json
 import datetime
+import time
+import logging
+logging.basicConfig(filename='/home/ubuntu/theft-market/server/log/datastore_access_timing.log',level=logging.INFO)
+
 ### Functions for handling queries
 
 ## Wrappers for handling queries
@@ -24,8 +28,8 @@ class city_query_handler(object):
         # checks for alpha characters (and allows space or %20 for city names) 
         # TODO make function  and allow hyphens, periods, and other valid characters
         # not sure if this is a problem
-        if params_dict['state_code'].isalpha() is False or ''.join(params_dict['city'].split(' ')).isalpha() is False:
-            return "non alphabet characters for city and/or state" + ''.join(params_dict['city'].split(' ')), 400
+        if params_dict['state_code'].isalpha() is False or is_valid_city(''.join(params_dict['city'].split(' '))) is False:
+            return "non alphabet characters for city and/or state " + params_dict['city'] + ", " + params_dict['state_code'], 400
 
         try:
             int(params_dict['num_bedrooms'])
@@ -108,7 +112,12 @@ def handle_data_city_volume_query(hbase_mgr, db_mgr, params_dict):
 
     return json.dumps(json_data)
 
-
+def is_valid_city(city):
+    for ch in city:
+        if not ch.isalpha() and ch not in ['.','-','\'']:
+            return False
+    return True
+        
 @city_query_handler
 def handle_data_city_average_query(hbase_mgr, db_mgr, params_dict):
 
@@ -150,17 +159,21 @@ def get_data(hbase_mgr, db_mgr, params_dict):
     start_date = params_dict['start_date']
     end_date = params_dict['end_date']
     num_bedrooms = params_dict['num_bedrooms']
-
+    
+    get_data_start = time.time()
 
     if params_dict["_subject_type"] == "city":
+
         nearby_cities = get_city_and_nearby_cities(db_mgr, params_dict['state_code'], params_dict['city'])
+        get_city_and_nearby_cities_complete = time.time()
 
         if nearby_cities is None:
             return {"query result":"No result found","city": params_dict['city'], "state_code":params_dict['state_code']}
         
         nearby_zipcodes = get_nearby_zipcodes_from_city(db_mgr, params_dict['state_code'], params_dict['city'])
+        get_nearby_zipcodes_complete = time.time()
 
-        # pad zipcodes with 0 (MySQL schema has zipcodes as ints)                                                                                                                                         
+        # pad zipcodes with 0 (MySQL schema has zipcodes as ints)       
         nearby_zipcodes = [str(100000 + int(x[0]))[1:] for x in nearby_zipcodes]
 
         if params_dict["_query_type"] == "volume":
@@ -180,20 +193,33 @@ def get_data(hbase_mgr, db_mgr, params_dict):
             for nearby_city in nearby_cities:
                 json_resp.append(get_city_list_average_dict(hbase_mgr, nearby_city[0], nearby_city[1], num_bedrooms, start_date, end_date))
 
+            get_city_list_average_dict_completed = time.time()
+
             for nearby_zipcode in nearby_zipcodes:
                 json_resp.append(get_zipcode_list_average_dict(hbase_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
             
+            get_zipcode_list_average_dict_completed = time.time()
+
+            # TODO print to [info] instead of [error]
+            logging.info("------------- Start Data Warehouse Access -----------------")
+            logging.info("get nearby cities from MySQL (GPS calculations) took: " + str(get_city_and_nearby_cities_complete - get_data_start) + "s")
+            logging.info("get nearby zipcodes from MySQL (GPS calculations) took: " + str(get_nearby_zipcodes_complete - get_city_and_nearby_cities_complete) + "s")
+            logging.info("get city average listings from HBase (10 row lookup and manipulation) took: " + str(get_city_list_average_dict_completed - get_nearby_zipcodes_complete) + "s")
+            logging.info("get zipcode average listings from HBase (10 row lookup and manipulation) took: " + str(get_zipcode_list_average_dict_completed - get_city_list_average_dict_completed) + "s")
+            logging.info("Total time took: " +  str(time.time() - get_data_start) + "s")
+            logging.info("------------- Done with Data Warehouse Access -----------------")
+
             return json_resp
 
     elif params_dict["_subject_type"] == "zipcode":
         
         nearby_zipcodes = get_zipcode_and_nearby_zipcodes(db_mgr, params_dict['zipcode'])
     
-        # pad zipcodes with 0 (MySQL schema has zipcodes as ints)
-        nearby_zipcodes = [str(100000 + int(x[0]))[1:] for x in nearby_zipcodes]
-    
         if nearby_zipcodes is None:
             return {"query result":"No result found","zipcode": params_dict['zipcode']}
+
+        # pad zipcodes with 0 (MySQL schema has zipcodes as ints)
+        nearby_zipcodes = [str(100000 + int(x[0]))[1:] for x in nearby_zipcodes]
         
         if params_dict["_query_type"] == "volume":
 

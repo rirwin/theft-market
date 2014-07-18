@@ -91,7 +91,6 @@ class DatabaseManager:
             cursor.execute("select " + selected_columns_str + " from " + table_str + " where " + where_cond_str) 
         else:
             cursor.execute("select " + selected_columns_str + " from " + table_str) 
-        #return cursor.fetchall()[0][0]
         return cursor.fetchall()
 
 
