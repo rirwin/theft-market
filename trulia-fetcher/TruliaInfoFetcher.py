@@ -55,62 +55,6 @@ class TruliaInfoFetcher:
             info_state_val_str = TruliaInfoFetcher.parse_get_states_resp(text)
             self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_state", info_state_val_str)
             
-    def fetch_all_counties(self):
-        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
-        for state_code_tuple in list(res):
-            self.fetch_counties_in_state(state_code_tuple[0])
-
-
-    def fetch_counties_in_state(self, state_code):
-        print "Fetch counties in " + state_code
-        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_county", "count(*)", "state_code='" + state_code + "'")
-        if res[0][0] > 0:
-            print " already retrieved"
-            return # already called
-
-        url_str = self.url + "library=" + self.location_library + "&function=getCountiesInState&state=" + state_code + "&apikey=" + self.apikeys[self.curr_key_idx]
-        self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
-
-        resp = urllib2.urlopen(url_str)
-        if resp.code == 200:
-            dest_dir = self.data_dir + "/counties_location_library"
-            file_name = "getCountiesInState_state_EQ_" + state_code + "_.xml"
-            text = resp.read()
-
-            info_counties_val_str = TruliaInfoFetcher.parse_get_counties_in_state_resp(text, state_code)
-            self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_county", info_counties_val_str)
-            print " county info retrieved"
-            time.sleep(2.0/len(self.apikeys)) # trulia api restriction
-
-
-    def fetch_all_cities(self):
-        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
-        for state_code_tuple in list(res):
-            self.fetch_cities_in_state(state_code_tuple[0])
-
-
-    def fetch_cities_in_state(self, state_code):
-        print "Fetching cities in " + state_code
-        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_city", "count(*)", "state_code='" + state_code + "'")
-        if res[0][0] > 0:
-            print " already retrieved"
-            return # already called
-
-        url_str = self.url + "library=" + self.location_library + "&function=getCitiesInState&state=" + state_code + "&apikey=" + self.apikeys[self.curr_key_idx]
-        self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
-
-        resp = urllib2.urlopen(url_str)
-        if resp.code == 200:
-            dest_dir = self.data_dir + "/cities_location_library"
-            file_name = "getCitiesInState_state_EQ_" + state_code + "_.xml"
-            text = resp.read()
-
-            info_cities_val_str = TruliaInfoFetcher.parse_get_cities_in_state_resp(text, state_code)
-            self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_city", info_cities_val_str)
-            print " city info retrieved"
-            time.sleep(2.0/len(self.apikeys)) # trulia api restriction
-
-
 
     def fetch_all_zipcodes_threaded(self):
 
@@ -266,35 +210,6 @@ class TruliaInfoFetcher:
             print "city info retrieved", state_code
 
 
-    def fetch_all_zipcodes(self):
-        res = self.db_mgrs[0].simple_select_query(self.db_mgr.conn, "info_state", "state_code")
-        for state_code_tuple in list(res):
-            self.fetch_zipcodes_in_state(state_code_tuple[0])
-
-
-    def fetch_zipcodes_in_state(self, state_code):
-        print "Fetching zipcodes in " + state_code
-
-        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_zipcode", "count(*)", "state_code='" + state_code + "'")
-
-        if res[0][0] > 0:
-            print " already retrieved"
-            return # already called
-
-        url_str = self.url + "library=" + self.location_library + "&function=getZipCodesInState&state=" + state_code + "&apikey=" + self.apikeys[self.curr_key_idx]
-        self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
-        resp = urllib2.urlopen(url_str)
-        if resp.code == 200:
-            dest_dir = self.data_dir + "/zipcodes_location_library"
-            file_name = "getZipCodesInState_state_EQ_" + state_code + "_.xml"
-            text = resp.read()
-
-            info_zipcodes_val_str = TruliaInfoFetcher.parse_get_zipcodes_in_state_resp(text, state_code)
-            self.db_mgr.simple_insert_query(self.db_mgr.conn, "info_zipcode", info_zipcodes_val_str)
-            print " zipcode info retrieved"
-            time.sleep(2.0/len(self.apikeys)) # trulia api restriction
-        
-        
     def save_xml_file(self, text, dest_dir, file_name):
 
         try:
