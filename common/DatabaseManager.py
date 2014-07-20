@@ -65,9 +65,11 @@ class DatabaseManager:
     @wrappers.logger
     @wrappers.general_function_handler
     def reset_table(self, table_str):
-        self.drop_table(self.conn, table_str)
+        #self.drop_table(self.conn, table_str)
         table_schema = self.schema_dict[table_str]
+
         schema_str = DatabaseManager.translate_schema_array(self.dbprog, table_schema)
+        print schema_str
         self.create_table(self.conn, table_str, schema_str)
 
 
@@ -80,7 +82,7 @@ class DatabaseManager:
     @wrappers.logger
     @wrappers.database_function_handler
     def create_table(self, cursor, table_str, schema_str):
-        print "create table " + table_str + schema_str
+        print "---create table " + table_str + schema_str
         cursor.execute("create table " + table_str + schema_str) 
 
 
@@ -109,7 +111,7 @@ class DatabaseManager:
             schema_str = "("
             for col_i in schema_arr:
                 if col_i[1] == "varchar":
-                    schema_str +=  col_i[0] + " varchar(256), "
+                    schema_str +=  col_i[0] + " varchar(128), "
                 else:
                     schema_str +=  col_i[0] + " " + col_i[1] + ", "
         
@@ -133,12 +135,4 @@ if '__main__' == __name__:
     config_path = "../conf/"
     dm = DatabaseManager(config_path)
     dm.reset_data_metadata_tables()
-    #dm.reset_all_tables()
-    '''
-    print dm.simple_select_query(dm.conn, "info_state", "*")
-    print dm.simple_insert_query(dm.conn, "info_state", "('New Hampshire', 42.290192, -71.853737)")
-    print dm.simple_select_query(dm.conn, "info_state", "*")    
-
-
-    print "Program continued to end"
-    '''
+    dm.reset_all_tables()
