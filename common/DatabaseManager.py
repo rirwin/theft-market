@@ -65,11 +65,10 @@ class DatabaseManager:
     @wrappers.logger
     @wrappers.general_function_handler
     def reset_table(self, table_str):
-        #self.drop_table(self.conn, table_str)
+        self.drop_table(self.conn, table_str)
         table_schema = self.schema_dict[table_str]
 
         schema_str = DatabaseManager.translate_schema_array(self.dbprog, table_schema)
-        print schema_str
         self.create_table(self.conn, table_str, schema_str)
 
 
@@ -82,7 +81,7 @@ class DatabaseManager:
     @wrappers.logger
     @wrappers.database_function_handler
     def create_table(self, cursor, table_str, schema_str):
-        print "---create table " + table_str + schema_str
+        print "create table " + table_str + schema_str
         cursor.execute("create table " + table_str + schema_str) 
 
 
