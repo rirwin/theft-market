@@ -4,8 +4,9 @@ import threading
 import sys
 import os
 from xml.dom import minidom
-import time
-import DataParser
+from fluent import sender
+from fluent import event
+from pprint import pprint as pprint
 
 common_path = "../common/"
 sys.path.append(common_path)
@@ -13,28 +14,22 @@ import TruliaConfLoader
 import DatabaseManager
 import HBaseManager
 import wrappers
+import DataParser
 
-
-# TODO cleanup
-fluent_path = "../extern/fluent-logger-python"
-sys.path.append(fluent_path)
-from fluent import sender
-from fluent import event
 
 class TruliaDataFetcher:
     def __init__(self, config_path):
         trulia_conf = TruliaConfLoader.TruliaConfLoader(config_path)
         self.load_trulia_params(trulia_conf)
         self.db_mgr = DatabaseManager.DatabaseManager(config_path)
-        self.init_fluent()
         self.hbase_mgr = HBaseManager.HBaseManager()
+        self.init_fluent()
 
         # lock for threads to use to add to val_strs
         self.lock = threading.Lock()
         self.val_strs = list()
 
 
-    # TODO remove unused stuff
     def load_trulia_params(self, trulia_conf):
         self.stats_library = trulia_conf.stats_library
         self.location_library = trulia_conf.location_library
@@ -46,28 +41,12 @@ class TruliaDataFetcher:
         self.apikeys = trulia_conf.apikeys
         self.curr_key_idx = 0
         self.data_dir = trulia_conf.data_dir
-        self.kafka_dir = trulia_conf.kafka_dir
-        self.kafka_host = trulia_conf.kafka_host
-        self.kafka_port = trulia_conf.kafka_port
-        self.fluent_dir = trulia_conf.fluent_dir
 
 
     def init_fluent(self):
-        #sys.path.append(self.fluent_dir)
-        #import fluent
-        #from fluent import sender
-        #from fluent import event
         sender.setup('hdfs')
 
 
-    def init_kafka(self):
-        sys.path.append(self.kafka_dir)
-        from kafka.client import KafkaClient
-        from kafka.consumer import SimpleConsumer
-        from kafka.producer import SimpleProducer, KeyedProducer
-        self.kafka = KafkaClient(self.kafka_host + ":" + self.kafka_port)
-
- 
     def get_latest_rx_date(self, obj_type, obj_key_dict):
         table_str = "data_" + obj_type
         where_str = ""
@@ -80,7 +59,6 @@ class TruliaDataFetcher:
         else:
             latest_rx_date = str(res[0][0])
         return latest_rx_date
-
 
 
     def fetch_all_states_data_threaded(self):
@@ -119,6 +97,8 @@ class TruliaDataFetcher:
 
             for t in threads:
                 t.join()
+
+            sys.exit(0)
 
             print self.val_strs
             for val_str in self.val_strs:
@@ -171,8 +151,9 @@ class TruliaDataFetcher:
             dest_file = state_code + ".xml"
 
             self.save_xml_file(text, dest_dir, dest_file)
-            TruliaDataFetcher.parse_get_state_stats_resp(text, self.db_mgr, self.hbase_mgr)
-            #DataParser.parse_get_state_stats_resp(text)
+            fluentd_accum, hbase_accum = DataParser.parse_get_state_stats_resp(text)
+            self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)
+            self.insert_accum_hbase_records(hbase_accum)
             self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", "('" + state_code + "',  '" + now_date + "', NOW())")
         
 
@@ -275,6 +256,20 @@ class TruliaDataFetcher:
             stream.write(str(text))
 
 
+    def send_accum_fluentd_records(self, match_rule, fluentd_accum):
+        for record in fluentd_accum:
+            event.Event(match_rule, record)
+
+
+    def insert_accum_hbase_records(self, hbase_accum):
+        for key in hbase_accum:
+            try:
+                self.hbase_mgr.state_stats_table.put(key, hbase_accum[key])
+            except:
+                print "Exception while inserting", key, "into HBase new function"
+
+
+
     @staticmethod
     def get_current_date():
         return time.strftime("%Y-%m-%d")
@@ -310,6 +305,9 @@ class TruliaDataFetcher:
 
         # for batching to hbase
         dom_accum = {}
+
+        # list of parsed json records for fluentd
+        dict_accum = []
 
         # Base of HBase key, will append bedroom count
         hbase_base_key = state_code.lower()
@@ -357,7 +355,7 @@ class TruliaDataFetcher:
             try:
                 hbase_mgr.state_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
             except:
-                print "Exception while inserting", hbase_base_key + "-" + key, "into HBase"
+                print "Exception while inserting", hbase_base_key + "-" + key, "into HBase old function"
 
 
     @staticmethod
@@ -627,14 +625,14 @@ if __name__ == "__main__":
     tdf = TruliaDataFetcher('../conf/')
 
     
-    #tdf.fetch_all_states_data()
+    tdf.fetch_all_states_data()
     #tdf.fetch_all_counties_all_states_data()
     #tdf.fetch_all_cities_all_states_data()
     #tdf.fetch_all_zipcodes_data()
     
 
     # flaky, do not use
-    #tdf.fetch_all_states_data_threaded()
+    # tdf.fetch_all_states_data_threaded()
 
     #Debugging section
     '''

@@ -17,7 +17,10 @@ def parse_get_state_stats_resp(text):
         return
 
     # for batching to hbase
-    dom_accum = {}
+    hbase_accum = {}
+
+    # list of parsed json records for fluentd                                                
+    fluentd_accum = []
 
     # Base of HBase key, will append bedroom count
     hbase_base_key = state_code.lower()
@@ -50,17 +53,22 @@ def parse_get_state_stats_resp(text):
                         # merge keys
                         state_dict = dict(state_dict.items() + listing_stat_dict.items())
 
+                        # accumulate for fluentd
+                        fluentd_accum.append(state_dict)
+
                         # hbase aggregation
                         val = str({'a': state_dict['avg_list'], 'n' : state_dict['num_list'] })
                         col_name = 'cf:' + week_ending_date
-                        if k_bed not in dom_accum:
-                            dom_accum[k_bed] = {}
-                        dom_accum[k_bed][col_name] = val
+                        row_key = hbase_base_key + '-' + k_bed
+                        if row_key not in hbase_accum:
+                            hbase_accum[row_key] = {}
+                        hbase_accum[row_key][col_name] = val
+
                     except:
                         continue
     
     print "done parsing"
-
+    return fluentd_accum, hbase_accum
 
 def is_str_positive_int(k_bed):
     try:
