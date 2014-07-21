@@ -5,6 +5,7 @@ import sys
 import os
 from xml.dom import minidom
 import time
+import DataParser
 
 common_path = "../common/"
 sys.path.append(common_path)
@@ -33,6 +34,7 @@ class TruliaDataFetcher:
         self.val_strs = list()
 
 
+    # TODO remove unused stuff
     def load_trulia_params(self, trulia_conf):
         self.stats_library = trulia_conf.stats_library
         self.location_library = trulia_conf.location_library
@@ -98,15 +100,20 @@ class TruliaDataFetcher:
             
             for thread_idx in xrange(num_threads):
                 state_code = state_codes[state_code_idx][0]
+
                 latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
+
                 now_date = TruliaDataFetcher.get_current_date()
+                print 'fetching state', state_code, latest_rx_date, now_date
+
                 url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[thread_idx]
 
                 t = threading.Thread(target=self.fetch_state_threaded, args=[url_str, state_code, send_to_hdfs, now_date])
-       
+                
                 threads.append(t)
                 state_code_idx+=1
 
+            # start down here because mysql calls above
             for t in threads:
                 t.start()
 
@@ -114,9 +121,8 @@ class TruliaDataFetcher:
                 t.join()
 
             print self.val_strs
-            sys.exit(0)
             for val_str in self.val_strs:
-                self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", val_str, send_to_hdfs)  
+                self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", val_str)  
 
             # make sure we don't use the same API within 2 seconds
             t2 = time.time()
@@ -130,15 +136,13 @@ class TruliaDataFetcher:
         resp = urllib2.urlopen(url_str)
         if resp.code == 200:
             text = resp.read()
-            dest_dir = '/Users/rirwin/data/state/' + state_code + '/fethed_on_' + '_'.join(now_date.split('-'))
-            dest_file = state_code + ".xml"
 
-            #self.save_xml_file(text, dest_dir, dest_file)
-            TruliaDataFetcher.parse_get_state_stats_resp(text, self.db_mgr, self.hbase_mgr, send_to_hdfs)
+            DataParser.parse_get_state_stats_resp(text)
+            #TruliaDataFetcher.parse_get_state_stats_resp(text, self.db_mgr, self.hbase_mgr, send_to_hdfs)
 
-            self.lock.acquire()
-            self.val_strs.append("('" + state_code + "',  '" + latest_rx_date + "', NOW())")
-            self.lock.release()
+            #self.lock.acquire()
+            self.val_strs.append("('" + state_code + "',  '" + now_date + "', NOW())")
+            #self.lock.release()
         
 
 
@@ -168,10 +172,9 @@ class TruliaDataFetcher:
 
             self.save_xml_file(text, dest_dir, dest_file)
             TruliaDataFetcher.parse_get_state_stats_resp(text, self.db_mgr, self.hbase_mgr)
-            self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", "('" + state_code + "',  '" + latest_rx_date + "', NOW())")
+            #DataParser.parse_get_state_stats_resp(text)
+            self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", "('" + state_code + "',  '" + now_date + "', NOW())")
         
-
-
 
     def fetch_all_cities_all_states_data(self):
 
@@ -305,10 +308,6 @@ class TruliaDataFetcher:
         if len(state_code) != 2:
             return
 
-        res = db_mgr.simple_select_query(db_mgr.conn, "info_state", "latitude, longitude", "state_code = '" + state_code + "' LIMIT 1")
-        lat = res[0][0]
-        lon = res[0][1]
-
         # for batching to hbase
         dom_accum = {}
 
@@ -353,13 +352,12 @@ class TruliaDataFetcher:
                             dom_accum[k_bed][col_name] = val
                         except:
                             continue
-    
 
-        # HBase bulk insert
         for key in dom_accum:
-            hbase_mgr.state_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
-            #hbase_mgr.state_stats_table.put(hbase_base_key + '-' + key, {'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
-                        
+            try:
+                hbase_mgr.state_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
+            except:
+                print "Exception while inserting", hbase_base_key + "-" + key, "into HBase"
 
 
     @staticmethod
@@ -628,13 +626,15 @@ if __name__ == "__main__":
 
     tdf = TruliaDataFetcher('../conf/')
 
-    '''
-    tdf.fetch_all_states_data()
-    tdf.fetch_all_cities_all_states_data()
-    tdf.fetch_all_zipcodes_data()
-    '''
+    
+    #tdf.fetch_all_states_data()
+    #tdf.fetch_all_counties_all_states_data()
+    #tdf.fetch_all_cities_all_states_data()
+    #tdf.fetch_all_zipcodes_data()
+    
 
-    tdf.fetch_all_states_data_threaded()
+    # flaky, do not use
+    #tdf.fetch_all_states_data_threaded()
 
     #Debugging section
     '''
