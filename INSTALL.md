@@ -19,7 +19,7 @@ Manual Install
  
   a.  Ubuntu
       $ sudo apt-get update
-      $ sudo apt-get install git python-dev python-pip mysql-client mysql-server apache2 libapache2-mod-wsgi rubygems emacs
+      $ sudo apt-get install git python-dev python-pip mysql-client mysql-server apache2 libapache2-mod-wsgi rubygems emacs python-mysqldb
 
     Fluentd's install script (provided by fluentd)
     
@@ -45,7 +45,6 @@ Manual Install
 3.  Python packages
   
         $ sudo pip install flask happybase fluent-logger
-
 
 4.  FluentD configuration
 
