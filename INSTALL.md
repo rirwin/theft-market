@@ -18,6 +18,7 @@ Manual Install
 2. OS Packages
  
   a.  Ubuntu
+
       $ sudo apt-get update
       $ sudo apt-get install git python-dev python-pip mysql-client mysql-server apache2 libapache2-mod-wsgi rubygems emacs python-mysqldb
 
