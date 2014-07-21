@@ -357,9 +357,10 @@ class TruliaDataFetcher:
 
         # HBase bulk insert
         for key in dom_accum:
-            hbase_mgr.city_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
-            hbase_mgr.city_stats_table.put(hbase_base_key + '-' + key, {'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
+            hbase_mgr.state_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
+            #hbase_mgr.state_stats_table.put(hbase_base_key + '-' + key, {'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
                         
+
 
     @staticmethod
     def parse_get_city_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
@@ -423,7 +424,94 @@ class TruliaDataFetcher:
 
         for key in dom_accum:
             hbase_mgr.city_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
-            hbase_mgr.city_stats_table.put(hbase_base_key + '-' + key, {'i:city': str(city), 'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
+            #hbase_mgr.city_stats_table.put(hbase_base_key + '-' + key, {'i:city': str(city), 'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
+
+
+
+
+    @staticmethod
+    def parse_get_county_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
+       
+        head_dom = minidom.parseString(text)
+        dom_list = head_dom.getElementsByTagName('listingStat')
+        state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
+        city = head_dom.getElementsByTagName('county')[0].firstChild.nodeValue
+
+        print city, state_code
+        # No key, do not log
+        if len(state_code) != 2 and len(county) > 0:
+            return
+
+        res = db_mgr.simple_select_query(db_mgr.conn, "info_county", "latitude, longitude", "state_code = '" + state_code + "' and county = '" + county + "' LIMIT 1")
+        lat = res[0][0]
+        lon = res[0][1]
+
+        # for batching to hbase
+        dom_accum = {}
+        hbase_base_key = state_code.lower() + '-' + '_'.join(county.lower().split(' '))
+
+        for dom_i in dom_list:
+
+            week_ending_date = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
+            week_list = dom_i.getElementsByTagName('listingPrice')
+
+            for week_dom_i in week_list:
+                k_bed_list = week_dom_i.getElementsByTagName('subcategory')
+                for k_bed_i in k_bed_list:
+                    prop_list = k_bed_i.getElementsByTagName('type')[0].firstChild.nodeValue
+
+                    # checking k_bed to be either a positive int
+                    # don't record aggregated 'All Properties' stats
+                    k_bed = prop_list.split(' ')[0]
+
+                    if (TruliaDataFetcher.is_str_positive_int(k_bed)):
+                        try:
+                            county_dict = {}
+                            county_dict['state_code'] = str(state_code)
+                            county_dict['city'] = str(city)
+                            county_dict['week_ending_date'] = str(week_ending_date)
+                            county_dict['num_beds'] = int(k_bed)
+                        
+                            # carefully parsing of sub xml dom
+                            listing_stat_dict = TruliaDataFetcher.parse_listing_stat(k_bed_i)
+                        
+                            # merge keys
+                            county_dict = dict(county_dict.items() + listing_stat_dict.items())
+                            if send_to_hdfs is True:
+                                event.Event('county.all_list_stats', county_dict)
+                        
+                            # hbase aggregation
+                            val = str({'a': county_dict['avg_list'], 'n' : county_dict['num_list'] })
+                            col_name = 'cf:' + week_ending_date
+                            if k_bed not in dom_accum:
+                                dom_accum[k_bed] = {}
+                            dom_accum[k_bed][col_name] = val
+                        except:
+                            continue
+
+        for key in dom_accum:
+            hbase_mgr.county_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
+            #hbase_mgr.city_stats_table.put(hbase_base_key + '-' + key, {'i:city': str(city), 'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
+
+
+    @staticmethod
+    def parse_get_zipcode_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
+       
+        head_dom = minidom.parseString(text)
+        dom_list = head_dom.getElementsByTagName('listingStat')
+
+        try:
+            state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
+            zipcode = head_dom.getElementsByTagName('zipCode')[0].firstChild.nodeValue
+        except:
+            return
+
+        print zipcode, state_code
+
+        # No key, do not log
+        if len(state_code) != 2 and len(zipcode) > 0:
+            return
+
 
 
     @staticmethod
@@ -493,7 +581,7 @@ class TruliaDataFetcher:
 
         for key in dom_accum:
             hbase_mgr.zipcode_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
-            hbase_mgr.zipcode_stats_table.put(hbase_base_key + '-' + key, {'i:zc': str(zipcode), 'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
+            #hbase_mgr.zipcode_stats_table.put(hbase_base_key + '-' + key, {'i:zc': str(zipcode), 'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
 
 
 
