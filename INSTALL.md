@@ -66,16 +66,19 @@ Manual Install
     
         $ sudo cp /etc/td-agent/td-agent.conf /etc/td-agent/td-agent.conf.bak
         $ sudo cp theft-market/conf/fluentd/td-agent.conf /etc/td-agent/td-agent.conf
+    
+    Then change the ip addresses to match the internal address of the master node
+    
+        $ sudo emacs /etc/td-agent/td-agent.conf
         
+        Change all lines:
+        host ip-172-31-15-74.us-west-1.compute.internal -> your internal address
+
     Restart td-agent and ensure it is running
     
         $ sudo /etc/init.d/td-agent restart
         $ sudo /etc/init.d/td-agent status
         
-    This file enabled WebHDFS and needs the cluster a webhdfs plugin (This doesn't work. Necessary or not??)
-    
-        $ sudo gem install fluent-plugin-webhdfs    
-
     Hand edit and add to hdfs-site.xml file
     
         $ sudo emacs /etc/hadoop/conf/hdfs-site.xml
@@ -95,7 +98,9 @@ Manual Install
           <value>true</value>
         </property>
 
-    An example is found in 'theft-market/hdfs/hdfs-site.xml', but do not copy the whole file because IP addresses are different (among other things). Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
+    An example is found in 'theft-market/hdfs/hdfs-site.xml', but do not copy the whole file because IP addresses are different (among other things). 
+    
+    Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
 
 
 5.  MySQL config
