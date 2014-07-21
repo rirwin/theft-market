@@ -10,14 +10,25 @@ class HBaseManager:
     def __init__(self):
         self.init_hbase()
 
-
+    #@wrappers.general_function_handler
     def init_hbase(self):
         self.conn = happybase.Connection('localhost')
-        #self.city_stats_table = self.conn.table('city_stats')
-        self.city_stats_table = self.conn.table('city_stats_26june14')
+        self.state_stats_table = self.conn.table('state_stats')
+        self.city_stats_table = self.conn.table('city_stats')
+        self.county_stats_table = self.conn.table('county_stats')
         self.zipcode_stats_table = self.conn.table('zipcode_stats')
+
+    @wrappers.general_function_handler
+    def create_data_tables(self):
+        # parameters for all hbase tables
+        # TODO put this in configuration
+        families = {'cf':dict(max_versions=1)}
+        self.conn.create_table('state_stats')
+        self.conn.create_table('city_stats')
+        self.conn.create_table('county_stats')
+        self.conn.create_table('zipcode_stats')
         
-        
+
     @wrappers.general_function_handler
     def get_city_list_volume(self, state_code, city, num_bedrooms, start_date, end_date):
         
@@ -111,3 +122,15 @@ class HBaseManager:
             return 0
         else:
             return round(float(num)/float(denom))
+
+
+
+def main():
+
+    # TODO add config
+    hm = HBaseManager()
+    hm.create_data_tables()
+
+if '__main__' == __name__:
+    main()
+
