@@ -1,6 +1,6 @@
 import happybase
 import datetime
-
+import threading
 
 # collection of exception handlers and logging wrappers
 import wrappers
@@ -10,10 +10,13 @@ class HBaseManager:
     def __init__(self):
         self.init_hbase_conn()
         self.establish_data_tables()
+        self.init_table_handles()
+
 
     @wrappers.general_function_handler
     def init_hbase_conn(self):
         self.conn = happybase.Connection('localhost')
+
 
     @wrappers.general_function_handler
     def init_table_handles(self):
@@ -22,6 +25,7 @@ class HBaseManager:
         self.county_stats_table = self.conn.table('county_stats')
         self.zipcode_stats_table = self.conn.table('zipcode_stats')
 
+
     @wrappers.general_function_handler
     def establish_data_tables(self):
 
@@ -29,6 +33,9 @@ class HBaseManager:
         # TODO put this schema in configuration
 
         families = {'cf':dict(max_versions=1)}
+
+        # each in try-catch block because happybase api does not 
+        # have establish table, and throws exception
         try:
             self.conn.create_table('state_stats',families)
         except:
@@ -69,7 +76,6 @@ class HBaseManager:
             sum_ += int(eval(data[key])['n'])
 
         return sum_
-
 
         
     @wrappers.general_function_handler
@@ -144,6 +150,15 @@ class HBaseManager:
         else:
             return round(float(num)/float(denom))
 
+    @wrappers.general_function_handler
+    def simple_put(self, table, row_key, row_dict):
+        self.lock.acquire()
+        if table == "state_stats":
+            print "in simple_put"
+            print row_key
+            print row_dict
+            self.state_stats_table.put(row_key, row_dict)
+        self.lock.release()
 
 
 def main():
