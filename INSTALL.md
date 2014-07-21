@@ -22,7 +22,7 @@ Manual Install
       $ sudo apt-get update
       $ sudo apt-get install git python-dev python-pip mysql-client mysql-server apache2 libapache2-mod-wsgi rubygems emacs python-mysqldb
 
-    Fluentd's install script (provided by fluentd)
+    Fluentd's install script provided by fluentd (if planning to use Hue wait until after Hue is initialized)
     
       $ curl -L http://toolbelt.treasuredata.com/sh/install-ubuntu-precise.sh | sh
       $ sudo /etc/init.d/td-agent status
@@ -45,9 +45,14 @@ Manual Install
 
 3.  Python packages
   
-        $ sudo pip install flask happybase fluent-logger
+        $ sudo pip install flask happybase fluent-logger cython
 
-4.  FluentD configuration
+
+4.  Git this repository if not already done so
+
+        $ git clone https://github.com/rirwin/theft-market
+
+5.  FluentD configuration
 
     On CDH5 Hue takes port 8888, which conflicts with td-agent's default configuration.
     Check to make sure no service is using port 8118.  This command should return nothing
@@ -61,13 +66,15 @@ Manual Install
     
         $ sudo cp /etc/td-agent/td-agent.conf /etc/td-agent/td-agent.conf.bak
         $ sudo cp theft-market/conf/fluentd/td-agent.conf /etc/td-agent/td-agent.conf
-    
-    Restart td-agent
+        
+    Restart td-agent and ensure it is running
     
         $ sudo /etc/init.d/td-agent restart
+        $ sudo /etc/init.d/td-agent status
         
-    This file enabled WebHDFS and needs the cluster a webhdfs plugin
-    sudo gem install fluent-plugin-webhdfs    I think this doesn't work?? Necessary or not??
+    This file enabled WebHDFS and needs the cluster a webhdfs plugin (This doesn't work. Necessary or not??)
+    
+        $ sudo gem install fluent-plugin-webhdfs    
 
     Hand edit and add to hdfs-site.xml file
     
