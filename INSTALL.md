@@ -22,7 +22,7 @@ Manual Install
       $ sudo apt-get update
       $ sudo apt-get install git python-dev python-pip mysql-client mysql-server apache2 libapache2-mod-wsgi rubygems emacs python-mysqldb
 
-    Fluentd's install script (provided by fluentd)
+    Fluentd's install script provided by fluentd (if planning to use Hue wait until after Hue is initialized)
     
       $ curl -L http://toolbelt.treasuredata.com/sh/install-ubuntu-precise.sh | sh
       $ sudo /etc/init.d/td-agent status
@@ -45,9 +45,14 @@ Manual Install
 
 3.  Python packages
   
-        $ sudo pip install flask happybase fluent-logger
+        $ sudo pip install flask happybase fluent-logger cython
 
-4.  FluentD configuration
+
+4.  Git this repository if not already done so
+
+        $ git clone https://github.com/rirwin/theft-market
+
+5.  FluentD configuration
 
     On CDH5 Hue takes port 8888, which conflicts with td-agent's default configuration.
     Check to make sure no service is using port 8118.  This command should return nothing
@@ -62,13 +67,18 @@ Manual Install
         $ sudo cp /etc/td-agent/td-agent.conf /etc/td-agent/td-agent.conf.bak
         $ sudo cp theft-market/conf/fluentd/td-agent.conf /etc/td-agent/td-agent.conf
     
-    Restart td-agent
+    Then change the ip addresses to match the internal address of the master node
+    
+        $ sudo emacs /etc/td-agent/td-agent.conf
+        
+        Change all lines:
+        host ip-172-31-15-74.us-west-1.compute.internal -> your internal address
+
+    Restart td-agent and ensure it is running
     
         $ sudo /etc/init.d/td-agent restart
+        $ sudo /etc/init.d/td-agent status
         
-    This file enabled WebHDFS and needs the cluster a webhdfs plugin
-    sudo gem install fluent-plugin-webhdfs    I think this doesn't work?? Necessary or not??
-
     Hand edit and add to hdfs-site.xml file
     
         $ sudo emacs /etc/hadoop/conf/hdfs-site.xml
@@ -88,9 +98,17 @@ Manual Install
           <value>true</value>
         </property>
 
-    An example is found in 'theft-market/hdfs/hdfs-site.xml', but do not copy the whole file because IP addresses are different (among other things). Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
+    An example is found in 'theft-market/hdfs/hdfs-site.xml', but do not copy the whole file because IP addresses are different (among other things). 
+    
+    Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
 
-
+    Create the data directory in HDFS:
+    
+         $ sudo su hdfs
+         $ hdfs dfs -mkdir /data
+         $ hdfs dfs -chmod +w /data
+         $ exit
+         
 5.  MySQL config
  
     Configure access to MySQL and match this to the file in theft-market/conf/theft-metastore.conf
