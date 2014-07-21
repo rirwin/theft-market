@@ -8,25 +8,46 @@ import wrappers
 class HBaseManager:
 
     def __init__(self):
-        self.init_hbase()
+        self.init_hbase_conn()
+        self.establish_data_tables()
 
-    #@wrappers.general_function_handler
-    def init_hbase(self):
+    @wrappers.general_function_handler
+    def init_hbase_conn(self):
         self.conn = happybase.Connection('localhost')
+
+    @wrappers.general_function_handler
+    def init_table_handles(self):
         self.state_stats_table = self.conn.table('state_stats')
         self.city_stats_table = self.conn.table('city_stats')
         self.county_stats_table = self.conn.table('county_stats')
         self.zipcode_stats_table = self.conn.table('zipcode_stats')
 
     @wrappers.general_function_handler
-    def create_data_tables(self):
+    def establish_data_tables(self):
+
         # parameters for all hbase tables
-        # TODO put this in configuration
+        # TODO put this schema in configuration
+
         families = {'cf':dict(max_versions=1)}
-        self.conn.create_table('state_stats')
-        self.conn.create_table('city_stats')
-        self.conn.create_table('county_stats')
-        self.conn.create_table('zipcode_stats')
+        try:
+            self.conn.create_table('state_stats',families)
+        except:
+            pass
+
+        try:
+            self.conn.create_table('city_stats',families)
+        except:
+            pass
+
+        try:
+            self.conn.create_table('county_stats',families)
+        except:
+            pass
+
+        try:
+            self.conn.create_table('zipcode_stats',families)
+        except:
+            pass
         
 
     @wrappers.general_function_handler
@@ -129,7 +150,7 @@ def main():
 
     # TODO add config
     hm = HBaseManager()
-    hm.create_data_tables()
+
 
 if '__main__' == __name__:
     main()
