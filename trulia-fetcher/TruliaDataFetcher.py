@@ -1,5 +1,6 @@
 import urllib2 
 import time
+import threading
 import sys
 import os
 from xml.dom import minidom
@@ -26,6 +27,10 @@ class TruliaDataFetcher:
         self.db_mgr = DatabaseManager.DatabaseManager(config_path)
         self.init_fluent()
         self.hbase_mgr = HBaseManager.HBaseManager()
+
+        # lock for threads to use to add to val_strs
+        self.lock = threading.Lock()
+        self.val_strs = list()
 
 
     def load_trulia_params(self, trulia_conf):
@@ -75,6 +80,68 @@ class TruliaDataFetcher:
         return latest_rx_date
 
 
+
+    def fetch_all_states_data_threaded(self):
+
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+
+        state_codes = list(res)
+        state_code_idx = 0;
+        send_to_hdfs = False
+        t1 = time.time()
+        
+        while state_code_idx < len(state_codes):
+           
+            threads = list()
+            self.val_strs = list()
+            num_threads = min(len(self.apikeys), len(state_codes)-state_code_idx)
+            
+            for thread_idx in xrange(num_threads):
+                state_code = state_codes[state_code_idx][0]
+                latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
+                now_date = TruliaDataFetcher.get_current_date()
+                url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[thread_idx]
+
+                t = threading.Thread(target=self.fetch_state_threaded, args=[url_str, state_code, send_to_hdfs, now_date])
+       
+                threads.append(t)
+                state_code_idx+=1
+
+            for t in threads:
+                t.start()
+
+            for t in threads:
+                t.join()
+
+            print self.val_strs
+            sys.exit(0)
+            for val_str in self.val_strs:
+                self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", val_str, send_to_hdfs)  
+
+            # make sure we don't use the same API within 2 seconds
+            t2 = time.time()
+            if t2 - t1 < 2.0:
+                time.sleep(2.0 - (t2 - t1))
+            t1 = t2
+
+
+    def fetch_state_threaded(self, url_str, state_code, send_to_hdfs, now_date):
+
+        resp = urllib2.urlopen(url_str)
+        if resp.code == 200:
+            text = resp.read()
+            dest_dir = '/Users/rirwin/data/state/' + state_code + '/fethed_on_' + '_'.join(now_date.split('-'))
+            dest_file = state_code + ".xml"
+
+            #self.save_xml_file(text, dest_dir, dest_file)
+            TruliaDataFetcher.parse_get_state_stats_resp(text, self.db_mgr, self.hbase_mgr, send_to_hdfs)
+
+            self.lock.acquire()
+            self.val_strs.append("('" + state_code + "',  '" + latest_rx_date + "', NOW())")
+            self.lock.release()
+        
+
+
     def fetch_all_states_data(self):
 
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
@@ -103,6 +170,8 @@ class TruliaDataFetcher:
             TruliaDataFetcher.parse_get_state_stats_resp(text, self.db_mgr, self.hbase_mgr)
             self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", "('" + state_code + "',  '" + latest_rx_date + "', NOW())")
         
+
+
 
     def fetch_all_cities_all_states_data(self):
 
@@ -226,7 +295,7 @@ class TruliaDataFetcher:
     # TODO merge some common functionalities
 
     @staticmethod
-    def parse_get_state_stats_resp(text, db_mgr, hbase_mgr):
+    def parse_get_state_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
        
         head_dom = minidom.parseString(text)
         dom_list = head_dom.getElementsByTagName('listingStat')
@@ -273,7 +342,8 @@ class TruliaDataFetcher:
                         
                             # merge keys
                             state_dict = dict(state_dict.items() + listing_stat_dict.items())
-                            event.Event('state.all_list_stats', state_dict)
+                            if send_to_hdfs is True:
+                                event.Event('state.all_list_stats', state_dict)
 
                             # hbase aggregation
                             val = str({'a': state_dict['avg_list'], 'n' : state_dict['num_list'] })
@@ -292,7 +362,7 @@ class TruliaDataFetcher:
                         
 
     @staticmethod
-    def parse_get_city_stats_resp(text, db_mgr, hbase_mgr):
+    def parse_get_city_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
        
         head_dom = minidom.parseString(text)
         dom_list = head_dom.getElementsByTagName('listingStat')
@@ -339,7 +409,8 @@ class TruliaDataFetcher:
                         
                             # merge keys
                             city_dict = dict(city_dict.items() + listing_stat_dict.items())
-                            event.Event('city.all_list_stats', city_dict)
+                            if send_to_hdfs is True:
+                                event.Event('city.all_list_stats', city_dict)
                         
                             # hbase aggregation
                             val = str({'a': city_dict['avg_list'], 'n' : city_dict['num_list'] })
@@ -356,7 +427,7 @@ class TruliaDataFetcher:
 
 
     @staticmethod
-    def parse_get_zipcode_stats_resp(text, db_mgr, hbase_mgr):
+    def parse_get_zipcode_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
        
         head_dom = minidom.parseString(text)
         dom_list = head_dom.getElementsByTagName('listingStat')
@@ -408,7 +479,8 @@ class TruliaDataFetcher:
                         
                             # merge keys
                             zipcode_dict = dict(zipcode_dict.items() + listing_stat_dict.items())
-                            event.Event('zipcode.all_list_stats', zipcode_dict)
+                            if send_to_hdfs is True:
+                                event.Event('zipcode.all_list_stats', zipcode_dict)
 
                             # hbase aggregation
                             val = str({'a': zipcode_dict['avg_list'], 'n' : zipcode_dict['num_list'] })
@@ -468,10 +540,14 @@ if __name__ == "__main__":
 
     tdf = TruliaDataFetcher('../conf/')
 
+    '''
     tdf.fetch_all_states_data()
     tdf.fetch_all_cities_all_states_data()
     tdf.fetch_all_zipcodes_data()
-    
+    '''
+
+    tdf.fetch_all_states_data_threaded()
+
     #Debugging section
     '''
     tdf.fetch_city('Alpaugh','CA')
