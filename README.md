@@ -65,6 +65,29 @@ http://<ipaddress>/data/zipcode/volume?q={"zipcode":"02458","num_bedrooms":3,"st
 
 ## 3. Operation
 
+1. Get geographic areas metadata
+         
+         $ cd theft-market/trulia-fetcher
+         $ python TruliaInfoFetcher.py
+
+2. Get real-estate listing data, this has a higher chance of failing somewhere, over 50k calls
+
+   Establish HBase tables
+   
+         $ screen
+         $ hbase thrift start
+         $ <ctrl-a><ctrl-d>  # detail from screen
+         $ cd theft-market/common
+         $ python HBaseManager.py
+         
+   Get the listing data
+         
+         $ screen
+         $ cd theft-market/trulia-fetcher
+         $ python TruliaInfoFetcher.py
+         $ <ctrl-a><ctrl-d>  # detail from screen
+
+old
 1. get data in zip file, unzip
 2. run database manager to reset database tables
 3. hbase shell to create tables (todo do this in HBaseManager)
