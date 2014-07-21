@@ -18,11 +18,8 @@ Manual Install
 2. OS Packages
  
   a.  Ubuntu
-    
-      $ sudo apt-get install python-dev python-pip
-      $ sudo apt-get install mysql-client mysql-server	# remember to set master password
-      $ sudo apt-get install apache2 libapache2-mod-wsgi
-      $ sudo apt-get install rubygems
+      $ sudo apt-get update
+      $ sudo apt-get install git python-dev python-pip mysql-client mysql-server apache2 libapache2-mod-wsgi rubygems emacs
 
     Fluentd's install script (provided by fluentd)
     
@@ -47,8 +44,7 @@ Manual Install
 
 3.  Python packages
   
-        $ sudo pip install flask
-        $ sudo pip install happybase
+        $ sudo pip install flask happybase fluent-logger
 
 
 4.  FluentD configuration
@@ -75,7 +71,7 @@ Manual Install
 
     Hand edit and add to hdfs-site.xml file
     
-        $ sudo vi /etc/hadoop/conf/hdfs-site.xml
+        $ sudo emacs /etc/hadoop/conf/hdfs-site.xml
     
     Add webhdfs property tags:
     
@@ -95,21 +91,15 @@ Manual Install
     An example is found in 'theft-market/hdfs/hdfs-site.xml', but do not copy the whole file because IP addresses are different (among other things). Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
 
 
-5.  FluentD Client
-
-    Create an extern directory and clone fluent-logger-python
-      
-        $ cd theft-market
-        $ mkdir extern; cd extern
-        $ git clone https://github.com/fluent/fluent-logger-python.git
-
-6.  MySQL config
+5.  MySQL config
  
     Configure access to MySQL and match this to the file in theft-market/conf/theft-metastore.conf
-    TODO fill in details to help out those unfamiliar with this.
+    Here I re-use the configuration for the vagrant development box
 
+         $ echo "CREATE DATABASE theft" | mysql -u root -p
+         $ echo "GRANT ALL ON theft.* TO vagrant@localhost IDENTIFIED BY 'pass'" | mysql -u root -p
 
-7.  Flask/Apache configuration
+6.  Flask/Apache configuration
 
     Apache server:
     Copy the file from conf/apache2/default to /etc/apache2/sites-available/default
@@ -123,9 +113,5 @@ Manual Install
     Restart Apache
     
       $ sudo service apache2 restart
-
-
-Step 6. enables web api
-Step 8. enables hive queries
 
 
