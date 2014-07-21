@@ -127,11 +127,14 @@ class DatabaseManager:
         cursor.execute("drop table if exists " + table_str)
 
  
-# unit-test
-if '__main__' == __name__:
-
+def main():
     # Full path (incl. file name) to database credentials
     config_path = "../conf/"
     dm = DatabaseManager(config_path)
     dm.reset_data_metadata_tables()
     dm.reset_all_tables()
+
+
+if '__main__' == __name__:
+    main()
+
