@@ -102,7 +102,13 @@ Manual Install
     
     Restart cluster in Cloudera Manager.  This will take about 10 minutes.  Get a coffee!
 
-
+    Create the data directory in HDFS:
+    
+         $ sudo su hdfs
+         $ hdfs dfs -mkdir /data
+         $ hdfs dfs -chmod +w /data
+         $ exit
+         
 5.  MySQL config
  
     Configure access to MySQL and match this to the file in theft-market/conf/theft-metastore.conf
