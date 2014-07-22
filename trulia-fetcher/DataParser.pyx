@@ -67,7 +67,6 @@ def parse_get_state_stats_resp(text):
                     except:
                         continue
     
-    print "done parsing"
     return fluentd_accum, hbase_accum
 
 def is_str_positive_int(k_bed):

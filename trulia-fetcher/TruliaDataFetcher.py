@@ -3,6 +3,7 @@ import time
 import threading
 import sys
 import os
+import Queue
 from xml.dom import minidom
 from fluent import sender
 from fluent import event
@@ -15,6 +16,9 @@ import DatabaseManager
 import HBaseManager
 import wrappers
 import DataParser
+import FetcherWorker
+import ParserWorker
+import DatastoreWriterWorker
 
 
 class TruliaDataFetcher:
@@ -25,9 +29,9 @@ class TruliaDataFetcher:
         self.hbase_mgr = HBaseManager.HBaseManager()
         self.init_fluent()
 
-        # lock for threads to use to add to val_strs
+        # lock for threads to use to add to fetch_metadata
         self.lock = threading.Lock()
-        self.val_strs = list()
+        self.fetch_metadata = list()
 
 
     def load_trulia_params(self, trulia_conf):
@@ -61,19 +65,62 @@ class TruliaDataFetcher:
         return latest_rx_date
 
 
+    def fetch_all_states_data_queue_threaded(self):
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        state_codes = [sc_tup[0] for sc_tup in res]
+        match_rule = 'state.all_list_stats'
+        metadata_table = 'data_state'
+
+        num_fetchers = len(self.apikeys)
+        num_parsers = num_fetchers * 4
+        num_datastore_writers = 3  # only 3 datastore writer types (hbase, fluentd, mysql)
+        
+        url_queue = Queue.Queue(num_fetchers)
+        text_queue = Queue.Queue(num_parsers)
+        records_queue = Queue.Queue(num_datastore_writers)
+
+        locks = {'hbase':threading.Lock(), 'mysql':threading.Lock(), 'fluentd':threading.Lock()}
+        writers = {'hbase':self.hbase_mgr.state_stats_table, 'mysql':self.db_mgr, 'fluentd':event}
+
+        for i in xrange(num_fetchers):
+            FetcherWorker.FetcherWorker(url_queue, self.apikeys[i], match_rule, writers, locks, metadata_table).start()
+            
+        #for i in xrange(num_parsers):
+        #    ParserWorker.ParserWorker(text_queue,records_queue,DataParser.parse_get_state_stats_resp).start()
+
+        #for i in xrange(num_datastore_writers):
+        #    DatastoreWriterWorker.DatastoreWriterWorker(records_queue, writers, locks, match_rule, metadata_table).start()
+
+        for state_code in state_codes:
+            latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
+            now_date = TruliaDataFetcher.get_current_date()
+            url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&\
+state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=list\
+ings" + "&apikey="
+            # put url and primary key(s) value(s) of metadata table in mysql
+            url_queue.put((url_str,[state_code]))
+
+        for i in xrange(num_fetchers):
+            url_queue.put(None) # add end-of-queue markers
+
+        #url_queue.join()
+
+
     def fetch_all_states_data_threaded(self):
 
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
 
         state_codes = list(res)
         state_code_idx = 0;
-        send_to_hdfs = False
         t1 = time.time()
         
         while state_code_idx < len(state_codes):
            
             threads = list()
-            self.val_strs = list()
+            self.fetch_metadata = list()
+            self.hbase_threads_accum = list()
+            self.fluentd_threads_accum = list()
+
             num_threads = min(len(self.apikeys), len(state_codes)-state_code_idx)
             
             for thread_idx in xrange(num_threads):
@@ -98,13 +145,16 @@ class TruliaDataFetcher:
             for t in threads:
                 t.join()
 
-            sys.exit(0)
+            for fluentd_accum in self.fluentd_threads_accum:
+                self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)
 
-            print self.val_strs
-            for val_str in self.val_strs:
+            for hbase_accum in self.hbase_threads_accum:
+                self.insert_accum_hbase_records(hbase_accum)
+
+            for val_str in self.fetch_metadata:
                 self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", val_str)  
 
-            # make sure we don't use the same API within 2 seconds
+            # make sure we don't use the same API key within 2 seconds
             t2 = time.time()
             if t2 - t1 < 2.0:
                 time.sleep(2.0 - (t2 - t1))
@@ -117,13 +167,13 @@ class TruliaDataFetcher:
         if resp.code == 200:
             text = resp.read()
 
-            DataParser.parse_get_state_stats_resp(text)
-            #TruliaDataFetcher.parse_get_state_stats_resp(text, self.db_mgr, self.hbase_mgr, send_to_hdfs)
+            fluentd_accum, hbase_accum = DataParser.parse_get_state_stats_resp(text)
 
-            #self.lock.acquire()
-            self.val_strs.append("('" + state_code + "',  '" + now_date + "', NOW())")
-            #self.lock.release()
-        
+            self.lock.acquire()  
+            self.hbase_threads_accum.append(hbase_accum)
+            self.fluentd_threads_accum.append(fluentd_accum)
+            self.fetch_metadata.append("('" + state_code + "',  '" + now_date + "', NOW())")
+            self.lock.release()
 
 
     def fetch_all_states_data(self):
@@ -631,8 +681,9 @@ if __name__ == "__main__":
     #tdf.fetch_all_zipcodes_data()
     
 
-    # flaky, do not use
-    # tdf.fetch_all_states_data_threaded()
+    # not much faster
+    #tdf.fetch_all_states_data_threaded()
+    #tdf.fetch_all_states_data_queue_threaded()
 
     #Debugging section
     '''
