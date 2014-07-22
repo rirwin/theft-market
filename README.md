@@ -65,14 +65,18 @@ http://<ipaddress>/data/zipcode/volume?q={"zipcode":"02458","num_bedrooms":3,"st
 
 ## 3. Operation
 
-1. Get geographic areas metadata
+1. Get your api-keys and put them into this file:
+
+         $ emacs theft-market/conf/theft-market.conf
+
+2. Get geographic areas metadata
          
          $ cd theft-market/trulia-fetcher
          $ python TruliaInfoFetcher.py
 
-2. Get real-estate listing data, this has a higher chance of failing somewhere, over 50k calls
+3. Get real-estate listing data, this has a higher chance of failing somewhere, over 50k calls
 
-   Establish HBase tables
+   Establish HBase tables.  If the cluster already has the hbase thrift server in a daemon skip the first 3 steps
    
          $ screen
          $ hbase thrift start
