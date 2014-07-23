@@ -88,7 +88,7 @@ http://<ipaddress>/data/zipcode/volume?q={"zipcode":"02458","num_bedrooms":3,"st
          
          $ screen
          $ cd theft-market/trulia-fetcher
-         $ python TruliaInfoFetcher.py
+         $ python TruliaDataFetcher.py
          $ <ctrl-a><ctrl-d>  # detail from screen
 
 old
