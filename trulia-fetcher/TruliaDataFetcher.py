@@ -184,43 +184,42 @@ ings" + "&apikey="
 
         for state_code_tuple in list(res):
             state_code = state_code_tuple[0]
-            self.fetch_state(state_code)
-            time.sleep(2.0/len(self.apikeys)) # trulia api restriction
+            fetched = self.fetch_state(state_code)
+            if fetched: 
+                time.sleep(2.0/len(self.apikeys)) # trulia api restriction
 
 
     def fetch_state(self, state_code):
         latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
         now_date = TruliaDataFetcher.get_current_date()
-        print "fetching state data about", state_code,"data from", latest_rx_date, "to", now_date
+
+        print "fetching state data about", state_code, "data from", latest_rx_date, "to", now_date,
+        if now_date == latest_rx_date:
+            print "already have fetched today"
+            # Notify caller that we did not hit Trulia's API
+            return False
+        print ""
         
         url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
 
         self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
+        metadata_key_list = ["state_code = '" + state_code + "'"]
+        metadata_table = "data_state"
 
-        resp = urllib2.urlopen(url_str)
-        if resp.code == 200:
-            text = resp.read()
-            dest_dir = '/home/ubuntu/data/state/' + state_code + '/fethed_on_' + '_'.join(now_date.split('-'))
-            dest_file = state_code + ".xml"
+        text = self.fetch_executor(url_str)
+        if text is None:
+            return False
+        json_doc = self.parse_executor(TruliaDataFetcher.parse_get_state_stats_resp, text)
+        self.write_executor(json_doc, metadata_table, now_date, metadata_key_list)
+        return True
 
-            #self.save_xml_file(text, dest_dir, dest_file)
-            #fluentd_accum, hbase_accum = DataParser.parse_get_state_stats_resp(text)
-            json_doc = TruliaDataFetcher.parse_get_state_stats_resp(text)
-            #pprint(json_doc)
-            #self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)
-            #self.insert_accum_hbase_records(hbase_accum)
-            self.insert_accum_redis_records(json_doc)
-            sys.exit(0)
-
-            self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", "('" + state_code + "',  '" + now_date + "', NOW())")
-        
 
     def fetch_all_cities_all_states_data(self):
 
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
         for state_code_tuple in list(res):
             state_code = state_code_tuple[0]
-            print state_code
+            print "Fetching cities in ", state_code
             self.fetch_all_cities_in_state_data(state_code)
 
 
@@ -229,9 +228,10 @@ ings" + "&apikey="
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_city", "city", "state_code = '" + state_code + "'")
         for city_tuple in list(res):
             city = city_tuple[0]
-            self.fetch_city(city, state_code)
-            time.sleep(2.0/len(self.apikeys)) # trulia api restriction 
-
+            fetched = self.fetch_city(city, state_code)
+            if fetched:
+                time.sleep(2.0/len(self.apikeys)) # trulia api restriction 
+            
 
     def fetch_city(self, city, state_code):
 
@@ -240,28 +240,67 @@ ings" + "&apikey="
 
         print "fetching city data about", city, state_code, "from", latest_rx_date, "to", now_date
         city_spaced = '%20'.join(city.split(' '))
+
+        if now_date == latest_rx_date:
+            print "already have fetched today"
+            # Notify caller that we did not hit Trulia's API
+            return False
+        print ""
+
         url_str = self.url + "library=" + self.stats_library + "&function=getCityStats&city=" + city_spaced + "&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
+
         self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
+        metadata_table = "data_city"
+        metadata_key_list = ["state_code = '" + state_code + "'", "city ='" + city + "'"]
 
-        resp = urllib2.urlopen(url_str)
-        if resp.code == 200:
-            text = resp.read()
-            dest_dir = '/home/ubuntu/data/city/' + state_code + '/fethed_on_' + '_'.join(now_date.split('-'))
-            dest_file = '_'.join(city.split(' ')) + ".xml"
-            self.save_xml_file(text, dest_dir, dest_file)
-            TruliaDataFetcher.parse_get_city_stats_resp(text, self.db_mgr, self.hbase_mgr)
-            self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_city", "('" + state_code + "', '" + city + "', '" + latest_rx_date + "', NOW())")
-        else: # try twice
-            time.sleep(5)
-            resp = urllib2.urlopen(url_str)
-            if resp.code == 200:
-                text = resp.read()
-                dest_dir = '/home/ubuntu/data/city/' + state_code + '/fethed_on_' + '_'.join(now_date.split('-'))
-                dest_file = '_'.join(city.split(' ')) + ".xml"
-                self.save_xml_file(text, dest_dir, dest_file)
-                TruliaDataFetcher.parse_get_city_stats_resp(text, self.db_mgr, self.hbase_mgr)
-                self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_city", "('" + state_code + "', '" + city + "', '" + latest_rx_date + "', NOW())")
+        text = self.fetch_executor(url_str)
+        json_doc = self.parse_executor(TruliaDataFetcher.parse_get_city_stats_resp, text)
+        self.write_executor(json_doc, metadata_table, now_date, metadata_key_list)
+        sys.exit(0)
 
+
+    def fetch_all_counties_all_states_data(self):
+
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        for state_code_tuple in list(res):
+            state_code = state_code_tuple[0]
+            print "Fetching cities in ", state_code
+            self.fetch_all_counties_in_state_data(state_code)
+
+
+    def fetch_all_counties_in_state_data(self, state_code):
+
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_county", "county", "state_code = '" + state_code + "'")
+        for county_tuple in list(res):
+            county = county_tuple[0]
+            fetched = self.fetch_county(county, state_code)
+            if fetched:
+                time.sleep(2.0/len(self.apikeys)) # trulia api restriction 
+            
+
+    def fetch_county(self, county, state_code):
+
+        latest_rx_date = self.get_latest_rx_date("county",{"state_code":state_code})
+        now_date = TruliaDataFetcher.get_current_date()
+
+        print "fetching county data about", county, state_code, "from", latest_rx_date, "to", now_date
+        county_spaced = '%20'.join(county.split(' '))
+
+        if now_date == latest_rx_date:
+            print "already have fetched today"
+            # Notify caller that we did not hit Trulia's API
+            return False
+        print ""
+
+        url_str = self.url + "library=" + self.stats_library + "&function=getCountyStats&county=" + county_spaced + "&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
+
+        self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
+        metadata_table = "data_county"
+        metadata_key_list = ["state_code = '" + state_code + "'", "county ='" + county + "'"]
+
+        text = self.fetch_executor(url_str)
+        json_doc = self.parse_executor(TruliaDataFetcher.parse_get_county_stats_resp, text)
+        self.write_executor(json_doc, metadata_table, now_date, metadata_key_list)
 
 
     def fetch_all_zipcodes_data(self): 
@@ -282,25 +321,50 @@ ings" + "&apikey="
         print "fetching zipcode data about", zipcode, "from", latest_rx_date, "to", now_date
         url_str = self.url + "library=" + self.stats_library + "&function=getZipCodeStats&zipCode=" + zipcode + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
         self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
+        metadata_table = "data_zipcode"
+        metadata_key_list = ["zipcode = " + zipcode ]
+
+        text = self.fetch_executor(url_str)
+        json_doc = self.parse_executor(TruliaDataFetcher.parse_get_zipcode_stats_resp, text)
+        self.write_executor(json_doc, metadata_table, now_date, metadata_key_list)
+
+
+    def write_executor(self, json_doc, metadata_table, most_recent_week, metadata_key_list):
+        # send to archive store
+        # TODO send to S3
+        # send to HDFS
+        #self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)
+        
+        # send to kv store
+        #self.insert_accum_hbase_records(hbase_accum)
+        self.insert_accum_redis_records(json_doc)
+            
+        # update meta-store
+        most_recent_week = TruliaDataFetcher.get_current_date()
+
+        self.db_mgr.establish_timestamp_and_most_recent_week(self.db_mgr.conn, metadata_table, most_recent_week, metadata_key_list)
+
+
+    # short function, may expand to threads or generator design pattern
+    def parse_executor(self, parse_func, text):
+        json_doc = parse_func(text)
+        return json_doc
+        
+
+    def fetch_executor(self, url_str):
 
         resp = urllib2.urlopen(url_str)
+ 
         if resp.code == 200:
-            text = resp.read()
-            dest_dir = '/home/ubuntu/data/zipcode/' + zipcode + '/fethed_on_' + '_'.join(now_date.split('-'))
-            dest_file = zipcode + ".xml"
-            self.save_xml_file(text, dest_dir, dest_file)
-            TruliaDataFetcher.parse_get_zipcode_stats_resp(text, self.db_mgr, self.hbase_mgr)
-            self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_zipcode", "(" + zipcode + ", '" + latest_rx_date + "', NOW())")
-        else: # try twice
+            return resp.read()
+            
+        else: # simple retry
             time.sleep(5)
             resp = urllib2.urlopen(url_str)
             if resp.code == 200:
-                text = resp.read()
-                dest_dir = '/home/ubuntu/data/zipcode/' + zipcode + '/fethed_on_' + '_'.join(now_date.split('-'))
-                dest_file = zipcode + ".xml"
-                self.save_xml_file(text, dest_dir, dest_file)
-                TruliaDataFetcher.parse_get_zipcode_stats_resp(text, self.db_mgr, self.hbase_mgr)
-                self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_zipcode", "(" + zipcode + ", '" + latest_rx_date + "', NOW())")
+                return resp.read()
+        
+        return None
 
 
     def save_xml_file(self, text, dest_dir, file_name):
@@ -331,7 +395,16 @@ ings" + "&apikey="
         if json_doc['doc_type'] == 'state_record':
             geo_label = json_doc['state_code']
             namespace = 'ST'
-            
+        elif json_doc['doc_type'] == 'county_record':
+            geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['county'].lower().split(' '))
+            namespace = 'CO'
+        elif json_doc['doc_type'] == 'zipcode_record':
+            geo_label = json_doc['zipcode']
+            namespace = 'ZP'
+        elif json_doc['doc_type'] == 'city_record':
+            geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['city'].lower().split(' '))
+            namespace = 'CI'
+
         for bed_i in json_doc['stats']:
             for week_i in json_doc['stats'][bed_i]:
                 rec = json_doc['stats'][bed_i][week_i]
@@ -375,11 +448,11 @@ ings" + "&apikey="
         if len(state_code) != 2:
             return
         else:
-            stat_doc = TruliaDataFetcher.parse_week_listings(dom_list)
+            stats_doc = TruliaDataFetcher.parse_week_listings(dom_list)
             head_doc = {}
             head_doc['doc_type'] = 'state_record'
             head_doc['state_code'] = state_code
-            head_doc['stats'] = stat_doc
+            head_doc['stats'] = stats_doc
             return head_doc
 
 
@@ -395,10 +468,13 @@ ings" + "&apikey="
         if len(state_code) != 2:
             return
         else:
-            doc = TruliaDataFetcher.parse_week_listings(dom_list)
-            doc['state_code'] = state_code
-            doc['city'] = city_name
-            return doc
+            stats_doc = TruliaDataFetcher.parse_week_listings(dom_list)
+            head_doc = {}
+            head_doc['doc_type'] = 'city_record'
+            head_doc['state_code'] = state_code
+            head_doc['city'] = city
+            head_doc['stats'] = stats_doc
+            return head_doc
 
 
     @staticmethod
@@ -413,10 +489,13 @@ ings" + "&apikey="
         if len(state_code) != 2 and len(county) > 0:
             return
         else:
-            doc = TruliaDataFetcher.parse_week_listings(dom_list)
-            doc['state_code'] = state_code
-            doc['county'] = county
-            return doc
+            stats_doc = TruliaDataFetcher.parse_week_listings(dom_list)
+            head_doc = {}
+            head_doc['doc_type'] = 'county_record'
+            head_doc['state_code'] = state_code
+            head_doc['county'] = county
+            head_doc['stats'] = stats_doc
+            return head_doc
 
 
     @staticmethod
@@ -437,8 +516,9 @@ ings" + "&apikey="
         else:
             stats_doc = TruliaDataFetcher.parse_week_listings(dom_list)
             head_doc = {}
-            head_doc['zipcode'] = zipcode
             head_doc['doc_type'] = 'zipcode_record'
+            head_doc['zipcode'] = zipcode
+            head_doc['stats'] = stats_doc
             return head_doc
 
 
@@ -525,297 +605,6 @@ ings" + "&apikey="
         return stat_dict
 
 
-    '''
-    @staticmethod
-    def parse_get_state_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
-       
-        head_dom = minidom.parseString(text)
-        dom_list = head_dom.getElementsByTagName('listingStat')
-        state_code = head_dom.getElementsByTagName('stateCode')[0].firstChild.nodeValue
-
-        # No key, do not log
-        if len(state_code) != 2:
-            return
-
-        # for batching to hbase
-        dom_accum = {}
-
-        # list of parsed json records for fluentd
-        dict_accum = []
-
-        # Base of HBase key, will append bedroom count
-        hbase_base_key = state_code.lower()
-        
-        for dom_i in dom_list:
-
-            week_ending_date = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
-            week_list = dom_i.getElementsByTagName('listingPrice')
-
-            for week_dom_i in week_list:
-                k_bed_list = week_dom_i.getElementsByTagName('subcategory')
-                for k_bed_i in k_bed_list:
-                    
-                    prop_list = k_bed_i.getElementsByTagName('type')[0].firstChild.nodeValue
-
-                    # checking k_bed to be either a positive int
-                    # don't record aggregated 'All Properties' stats
-                    k_bed = prop_list.split(' ')[0]
-
-                    if (TruliaDataFetcher.is_str_positive_int(k_bed)):
-                        try:
-                            state_dict = {}
-                            state_dict['state_code'] = str(state_code)
-                            state_dict['week_ending_date'] = str(week_ending_date)
-                            state_dict['num_beds'] = int(k_bed)
-                            
-                            # carefully parsing of sub xml dom
-                            listing_stat_dict = TruliaDataFetcher.parse_listing_stat(k_bed_i)
-                        
-                            # merge keys
-                            state_dict = dict(state_dict.items() + listing_stat_dict.items())
-                            if send_to_hdfs is True:
-                                event.Event('state.all_list_stats', state_dict)
-
-                            # hbase aggregation
-                            val = str({'a': state_dict['avg_list'], 'n' : state_dict['num_list'] })
-                            col_name = 'cf:' + week_ending_date
-                            if k_bed not in dom_accum:
-                                dom_accum[k_bed] = {}
-                            dom_accum[k_bed][col_name] = val
-                        except:
-                            continue
-
-        for key in dom_accum:
-            try:
-                hbase_mgr.state_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
-            except:
-                print "Exception while inserting", hbase_base_key + "-" + key, "into HBase old function"
-
-
-    @staticmethod
-    def parse_get_city_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
-       
-        head_dom = minidom.parseString(text)
-        dom_list = head_dom.getElementsByTagName('listingStat')
-        state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
-        city = head_dom.getElementsByTagName('city')[0].firstChild.nodeValue
-
-        print city, state_code
-        # No key, do not log
-        if len(state_code) != 2 and len(city) > 0:
-            return
-
-        res = db_mgr.simple_select_query(db_mgr.conn, "info_city", "latitude, longitude", "state_code = '" + state_code + "' and city = '" + city + "' LIMIT 1")
-        lat = res[0][0]
-        lon = res[0][1]
-
-        # for batching to hbase
-        dom_accum = {}
-        hbase_base_key = state_code.lower() + '-' + '_'.join(city.lower().split(' '))
-
-        for dom_i in dom_list:
-
-            week_ending_date = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
-            week_list = dom_i.getElementsByTagName('listingPrice')
-
-            for week_dom_i in week_list:
-                k_bed_list = week_dom_i.getElementsByTagName('subcategory')
-                for k_bed_i in k_bed_list:
-                    prop_list = k_bed_i.getElementsByTagName('type')[0].firstChild.nodeValue
-
-                    # checking k_bed to be either a positive int
-                    # don't record aggregated 'All Properties' stats
-                    k_bed = prop_list.split(' ')[0]
-
-                    if (TruliaDataFetcher.is_str_positive_int(k_bed)):
-                        try:
-                            city_dict = {}
-                            city_dict['state_code'] = str(state_code)
-                            city_dict['city'] = str(city)
-                            city_dict['week_ending_date'] = str(week_ending_date)
-                            city_dict['num_beds'] = int(k_bed)
-                        
-                            # carefully parsing of sub xml dom
-                            listing_stat_dict = TruliaDataFetcher.parse_listing_stat(k_bed_i)
-                        
-                            # merge keys
-                            city_dict = dict(city_dict.items() + listing_stat_dict.items())
-                            if send_to_hdfs is True:
-                                event.Event('city.all_list_stats', city_dict)
-                        
-                            # hbase aggregation
-                            val = str({'a': city_dict['avg_list'], 'n' : city_dict['num_list'] })
-                            col_name = 'cf:' + week_ending_date
-                            if k_bed not in dom_accum:
-                                dom_accum[k_bed] = {}
-                            dom_accum[k_bed][col_name] = val
-                        except:
-                            continue
-
-        for key in dom_accum:
-            hbase_mgr.city_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
-            #hbase_mgr.city_stats_table.put(hbase_base_key + '-' + key, {'i:city': str(city), 'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
-
-
-
-
-    @staticmethod
-    def parse_get_county_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
-       
-        head_dom = minidom.parseString(text)
-        dom_list = head_dom.getElementsByTagName('listingStat')
-        state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
-        city = head_dom.getElementsByTagName('county')[0].firstChild.nodeValue
-
-        print city, state_code
-        # No key, do not log
-        if len(state_code) != 2 and len(county) > 0:
-            return
-
-        res = db_mgr.simple_select_query(db_mgr.conn, "info_county", "latitude, longitude", "state_code = '" + state_code + "' and county = '" + county + "' LIMIT 1")
-        lat = res[0][0]
-        lon = res[0][1]
-
-        # for batching to hbase
-        dom_accum = {}
-        hbase_base_key = state_code.lower() + '-' + '_'.join(county.lower().split(' '))
-
-        for dom_i in dom_list:
-
-            week_ending_date = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
-            week_list = dom_i.getElementsByTagName('listingPrice')
-
-            for week_dom_i in week_list:
-                k_bed_list = week_dom_i.getElementsByTagName('subcategory')
-                for k_bed_i in k_bed_list:
-                    prop_list = k_bed_i.getElementsByTagName('type')[0].firstChild.nodeValue
-
-                    # checking k_bed to be either a positive int
-                    # don't record aggregated 'All Properties' stats
-                    k_bed = prop_list.split(' ')[0]
-
-                    if (TruliaDataFetcher.is_str_positive_int(k_bed)):
-                        try:
-                            county_dict = {}
-                            county_dict['state_code'] = str(state_code)
-                            county_dict['city'] = str(city)
-                            county_dict['week_ending_date'] = str(week_ending_date)
-                            county_dict['num_beds'] = int(k_bed)
-                        
-                            # carefully parsing of sub xml dom
-                            listing_stat_dict = TruliaDataFetcher.parse_listing_stat(k_bed_i)
-                        
-                            # merge keys
-                            county_dict = dict(county_dict.items() + listing_stat_dict.items())
-                            if send_to_hdfs is True:
-                                event.Event('county.all_list_stats', county_dict)
-                        
-                            # hbase aggregation
-                            val = str({'a': county_dict['avg_list'], 'n' : county_dict['num_list'] })
-                            col_name = 'cf:' + week_ending_date
-                            if k_bed not in dom_accum:
-                                dom_accum[k_bed] = {}
-                            dom_accum[k_bed][col_name] = val
-                        except:
-                            continue
-
-        for key in dom_accum:
-            hbase_mgr.county_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
-            #hbase_mgr.city_stats_table.put(hbase_base_key + '-' + key, {'i:city': str(city), 'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
-
-
-    @staticmethod
-    def parse_get_zipcode_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
-       
-        head_dom = minidom.parseString(text)
-        dom_list = head_dom.getElementsByTagName('listingStat')
-
-        try:
-            state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
-            zipcode = head_dom.getElementsByTagName('zipCode')[0].firstChild.nodeValue
-        except:
-            return
-
-        print zipcode, state_code
-
-        # No key, do not log
-        if len(state_code) != 2 and len(zipcode) > 0:
-            return
-
-
-
-    @staticmethod
-    def parse_get_zipcode_stats_resp(text, db_mgr, hbase_mgr, send_to_hdfs = True):
-       
-        head_dom = minidom.parseString(text)
-        dom_list = head_dom.getElementsByTagName('listingStat')
-
-        try:
-            state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
-            zipcode = head_dom.getElementsByTagName('zipCode')[0].firstChild.nodeValue
-        except:
-            return
-
-        print zipcode, state_code
-
-        # No key, do not log
-        if len(state_code) != 2 and len(zipcode) > 0:
-            return
-        
-        res = db_mgr.simple_select_query(db_mgr.conn, "info_zipcode", "latitude, longitude", "state_code = '" + state_code + "' and zipcode = '" + zipcode + "' LIMIT 1")
-        lat = res[0][0]
-        lon = res[0][1]
-
-        # HBase bulk insert
-        dom_accum = {}
-        hbase_base_key = str(zipcode)
-
-        for dom_i in dom_list:
-
-            week_ending_date = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
-            week_list = dom_i.getElementsByTagName('listingPrice')
-
-            for week_dom_i in week_list:
-                k_bed_list = week_dom_i.getElementsByTagName('subcategory')
-                for k_bed_i in k_bed_list:
-                    prop_list = k_bed_i.getElementsByTagName('type')[0].firstChild.nodeValue
-
-                    # checking k_bed to be either a positive int
-                    # don't record aggregated 'All Properties' stats
-                    k_bed = prop_list.split(' ')[0]
-
-                    if (TruliaDataFetcher.is_str_positive_int(k_bed)):
-                        try:
-                            zipcode_dict = {}
-                            zipcode_dict['state_code'] = str(state_code)
-                            zipcode_dict['zipcode'] = str(zipcode)
-                            zipcode_dict['week_ending_date'] = str(week_ending_date)
-                            zipcode_dict['num_beds'] = int(k_bed)
-                            
-                            # carefully parsing of sub xml dom
-                            listing_stat_dict = TruliaDataFetcher.parse_listing_stat(k_bed_i)
-                        
-                            # merge keys
-                            zipcode_dict = dict(zipcode_dict.items() + listing_stat_dict.items())
-                            if send_to_hdfs is True:
-                                event.Event('zipcode.all_list_stats', zipcode_dict)
-
-                            # hbase aggregation
-                            val = str({'a': zipcode_dict['avg_list'], 'n' : zipcode_dict['num_list'] })
-                            col_name = 'cf:' + week_ending_date
-                            if k_bed not in dom_accum:
-                                dom_accum[k_bed] = {}
-                            dom_accum[k_bed][col_name] = val
-                        except:
-                            continue
-
-        for key in dom_accum:
-            hbase_mgr.zipcode_stats_table.put(hbase_base_key + '-' + key, dom_accum[key])
-            #hbase_mgr.zipcode_stats_table.put(hbase_base_key + '-' + key, {'i:zc': str(zipcode), 'i:sc':str(state_code), 'i:lat:':str(lat),'i:lon':str(lon)})
-
-     '''
-
-
 # unit-test
 if __name__ == "__main__":
 
@@ -823,7 +612,7 @@ if __name__ == "__main__":
     tdf = TruliaDataFetcher('../conf/')
 
 
-    tdf.fetch_all_states_data()
+    #tdf.fetch_all_states_data()
     #tdf.fetch_all_counties_all_states_data()
     #tdf.fetch_all_cities_all_states_data()
     #tdf.fetch_all_zipcodes_data()

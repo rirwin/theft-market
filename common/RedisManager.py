@@ -96,7 +96,7 @@ class RedisManager:
 
 def main():
 
-    # TODO add config
+    # TODO add config of connection items
     rm = RedisManager()
 
 
