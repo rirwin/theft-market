@@ -254,16 +254,18 @@ ings" + "&apikey="
         metadata_key_list = ["state_code = '" + state_code + "'", "city ='" + city + "'"]
 
         text = self.fetch_executor(url_str)
+        if text is None:
+            return False
         json_doc = self.parse_executor(TruliaDataFetcher.parse_get_city_stats_resp, text)
         self.write_executor(json_doc, metadata_table, now_date, metadata_key_list)
-
+        return True
 
     def fetch_all_counties_all_states_data(self):
 
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
         for state_code_tuple in list(res):
             state_code = state_code_tuple[0]
-            print "Fetching cities in ", state_code
+            print "Fetching counties in ", state_code
             self.fetch_all_counties_in_state_data(state_code)
 
 
@@ -298,8 +300,11 @@ ings" + "&apikey="
         metadata_key_list = ["state_code = '" + state_code + "'", "county ='" + county + "'"]
 
         text = self.fetch_executor(url_str)
+        if text is None:
+            return False
         json_doc = self.parse_executor(TruliaDataFetcher.parse_get_county_stats_resp, text)
         self.write_executor(json_doc, metadata_table, now_date, metadata_key_list)
+        return True
 
 
     def fetch_all_zipcodes_data(self): 
@@ -324,9 +329,11 @@ ings" + "&apikey="
         metadata_key_list = ["zipcode = " + zipcode ]
 
         text = self.fetch_executor(url_str)
+        if text is None:
+            return False
         json_doc = self.parse_executor(TruliaDataFetcher.parse_get_zipcode_stats_resp, text)
         self.write_executor(json_doc, metadata_table, now_date, metadata_key_list)
-
+        return True
 
     def write_executor(self, json_doc, metadata_table, most_recent_week, metadata_key_list):
         # send to archive store
@@ -351,17 +358,19 @@ ings" + "&apikey="
         
 
     def fetch_executor(self, url_str):
-
-        resp = urllib2.urlopen(url_str)
- 
-        if resp.code == 200:
-            return resp.read()
-            
-        else: # simple retry
-            time.sleep(5)
-            resp = urllib2.urlopen(url_str)
+        
+        try:
+            resp = urllib2.urlopen(url_str) 
             if resp.code == 200:
                 return resp.read()
+            else: # simple retry
+                time.sleep(5)
+                resp = urllib2.urlopen(url_str)
+                if resp.code == 200:
+                    return resp.read()
+        except:
+            # TODO log error
+            print "Error fetching", url_str
         
         return None
 
@@ -611,10 +620,10 @@ if __name__ == "__main__":
     tdf = TruliaDataFetcher('../conf/')
 
     # Stable functions, but single threaded
-    #tdf.fetch_all_states_data()
-    #tdf.fetch_all_counties_all_states_data()
-    #tdf.fetch_all_cities_all_states_data()
-    #tdf.fetch_all_zipcodes_data()
+    tdf.fetch_all_states_data()
+    tdf.fetch_all_counties_all_states_data()
+    tdf.fetch_all_cities_all_states_data()
+    tdf.fetch_all_zipcodes_data()
     
 
     # not much faster
