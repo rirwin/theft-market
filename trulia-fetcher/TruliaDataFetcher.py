@@ -235,7 +235,7 @@ ings" + "&apikey="
 
     def fetch_city(self, city, state_code):
 
-        latest_rx_date = self.get_latest_rx_date("city",{"state_code":state_code})
+        latest_rx_date = self.get_latest_rx_date("city",{"state_code":state_code,"city":city})
         now_date = TruliaDataFetcher.get_current_date()
 
         print "fetching city data about", city, state_code, "from", latest_rx_date, "to", now_date
@@ -281,7 +281,7 @@ ings" + "&apikey="
 
     def fetch_county(self, county, state_code):
 
-        latest_rx_date = self.get_latest_rx_date("county",{"state_code":state_code})
+        latest_rx_date = self.get_latest_rx_date("county",{"state_code":state_code,"county":county})
         now_date = TruliaDataFetcher.get_current_date()
 
         print "fetching county data about", county, state_code, "from", latest_rx_date, "to", now_date
