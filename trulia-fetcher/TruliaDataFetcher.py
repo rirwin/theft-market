@@ -256,7 +256,6 @@ ings" + "&apikey="
         text = self.fetch_executor(url_str)
         json_doc = self.parse_executor(TruliaDataFetcher.parse_get_city_stats_resp, text)
         self.write_executor(json_doc, metadata_table, now_date, metadata_key_list)
-        sys.exit(0)
 
 
     def fetch_all_counties_all_states_data(self):
@@ -611,7 +610,7 @@ if __name__ == "__main__":
 
     tdf = TruliaDataFetcher('../conf/')
 
-
+    # Stable functions, but single threaded
     #tdf.fetch_all_states_data()
     #tdf.fetch_all_counties_all_states_data()
     #tdf.fetch_all_cities_all_states_data()
