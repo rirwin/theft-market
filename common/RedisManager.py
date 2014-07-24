@@ -6,8 +6,9 @@ import wrappers
 
 # redis keys are stored
 # <namespace>|<k_bedrooms>|<geographic_label>| ...
-# <average of listings:a or number of listings:n>|<date: YYYY_MM_DD>
+# |<date: YYYY_MM_DD>
 # namespace for state is ST, city: CY, county CO, zipcode ZC
+# the value is {'a':avg_list_price, 'n':num_listings}
 
 # geo label for state is just the state_code (XX)
 # geo label for a city is state_code-city_label_with_spaces
@@ -30,7 +31,7 @@ class RedisManager:
     @wrappers.general_function_handler
     def get_list_volume(self, namespace, geo_label, num_bedrooms, start_date, end_date):
 
-        keys = self.conn.keys('|'.join([namespace, str(num_bedrooms), geo_label,'n']) + '*')
+        keys = self.conn.keys('|'.join([namespace, str(num_bedrooms), geo_label]) + '*')
 
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
@@ -44,14 +45,14 @@ class RedisManager:
 
         sum_ = 0
         for key in filtered_keys:
-            sum_ += int(self.conn.get(key))
+            sum_ += int(eval(self.conn.get(key))['n'])
 
         return sum_
 
         
     @wrappers.general_function_handler
     def get_list_average(self, namespace, geo_label, num_bedrooms, start_date, end_date):
-        keys = self.conn.keys('|'.join([namespace, str(num_bedrooms), geo_label,'a']) + '*')     
+        keys = self.conn.keys('|'.join([namespace, str(num_bedrooms), geo_label]) + '*')     
 
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
@@ -65,10 +66,11 @@ class RedisManager:
 
         num = 0
         denom = 0
-        for a_key in filtered_keys:
-            n_key = '|'.join(a_key.split('|')[:-2]) + '|n|' + a_key.split('|')[-1]
-            n = int(self.conn.get(n_key))
-            a = int(self.conn.get(a_key))
+        for key in filtered_keys:
+            
+            val = eval(self.conn.get(key))
+            a = val['a']
+            n = val['n']
             num += n*a
             denom += n
 
@@ -88,11 +90,8 @@ class RedisManager:
             print 'At least one input was malformed input', 
             return
 
-        a_key = '|'.join([namespace, str(num_bedrooms), geo_label,'a',list_datetime])
-        n_key = '|'.join([namespace, str(num_bedrooms), geo_label,'n',list_datetime])
-        #print a_key, list_average
-        self.conn.set(a_key, list_average)
-        self.conn.set(n_key, list_volume)
+        key = '|'.join([namespace, str(num_bedrooms), geo_label,list_datetime])
+        self.conn.set(key, {'a':list_average,'n':list_volume})
 
 
 def main():
