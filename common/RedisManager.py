@@ -79,19 +79,20 @@ class RedisManager:
 
 
     @wrappers.general_function_handler
-    def set_listing(self, namespace, geo_label, num_bedrooms, list_datetime, list_average, listing_volume):
+    def set_listing(self, namespace, geo_label, num_bedrooms, list_datetime, list_average, list_volume):
         try:
             int(num_bedrooms)
             float(list_average) # int or float is fine
-            int(listing_volume)
+            int(list_volume)
         except:
-            print 'At least one input was malformed input'
+            print 'At least one input was malformed input', 
             return
 
         a_key = '|'.join([namespace, str(num_bedrooms), geo_label,'a',list_datetime])
         n_key = '|'.join([namespace, str(num_bedrooms), geo_label,'n',list_datetime])
-        self.conn.set(a_key, listing_average)
-        self.conn.set(n_key, listing_volume)
+        #print a_key, list_average
+        self.conn.set(a_key, list_average)
+        self.conn.set(n_key, list_volume)
 
 
 def main():
