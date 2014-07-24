@@ -7,7 +7,7 @@ import wrappers
 # redis keys are stored
 # <namespace>|<k_bedrooms>|<geographic_label>| ...
 # |<date: YYYY_MM_DD>
-# namespace for state is ST, city: CY, county CO, zipcode ZC
+# namespace for state is ST, city: CI, county CO, zipcode ZC
 # the value is {'a':avg_list_price, 'n':num_listings}
 
 # geo label for state is just the state_code (XX)
