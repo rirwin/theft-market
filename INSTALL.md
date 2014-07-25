@@ -45,7 +45,7 @@ Manual Install
 
 3.  Python packages
   
-        $ sudo pip install flask happybase fluent-logger cython
+        $ sudo pip install flask happybase fluent-logger cython redis
 
 
 4.  Git this repository if not already done so
