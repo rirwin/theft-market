@@ -103,6 +103,25 @@ class DatabaseManager:
 
     @wrappers.logger
     @wrappers.database_function_handler
+    def get_nearby_places(self, cursor, table_str_ref, pri_key_list_ref, table_str_target, col_list, rad_mi):
+        res = cursor.execute("select latitude, longitude from " + table_str_ref + " where " + ' and '.join(pri_key_list_ref))
+
+        res = cursor.fetchall()
+        if len(res) == 0:
+            return None
+    
+        lat = str(res[0][0])
+        lon = str(res[0][1])
+
+        cols_str = ','.join(col_list)
+        cursor.execute("select " + cols_str + ", ( 3959 * acos( cos( radians(" + lat + ") ) * cos(\
+ radians( latitude ) ) * cos( radians( longitude ) - radians(" + lon +") ) + sin( radians(" + lat + ") ) * sin( radians( latitude ) ) ) ) AS distance from " + table_str_target + " HAVING distance < " + rad_mi + " ORDER BY distance LIMIT 0 , 10")
+
+        return cursor.fetchall()
+
+
+    @wrappers.logger
+    @wrappers.database_function_handler
     def establish_timestamp_and_most_recent_week(self, cursor, table_str, most_recent_week_fetched, pri_key_match_list):
         cursor.execute("select count(*) from " + table_str + " where " + ' and '.join(pri_key_match_list))
         res = cursor.fetchone()[0]
@@ -144,6 +163,8 @@ class DatabaseManager:
     @wrappers.database_function_handler
     def drop_table_static(cursor, table_str):
         cursor.execute("drop table if exists " + table_str)
+
+
 
  
 def main():

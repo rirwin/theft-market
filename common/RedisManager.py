@@ -76,7 +76,7 @@ class RedisManager:
         if denom == 0:
             return 0
         else:
-            return num/demon
+            return num/denom
 
 
     @wrappers.general_function_handler
