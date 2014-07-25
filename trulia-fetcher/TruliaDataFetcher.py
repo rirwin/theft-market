@@ -86,117 +86,6 @@ class TruliaDataFetcher:
         return latest_ac_date
 
 
-    def fetch_all_states_data_queue_threaded(self):
-        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
-        state_codes = [sc_tup[0] for sc_tup in res]
-        match_rule = 'state.all_list_stats'
-        metadata_table = 'data_state'
-
-        num_fetchers = len(self.apikeys)
-        num_parsers = num_fetchers * 4
-        num_datastore_writers = 3  # only 3 datastore writer types (hbase, fluentd, mysql)
-        
-        url_queue = Queue.Queue(num_fetchers)
-        text_queue = Queue.Queue(num_parsers)
-        records_queue = Queue.Queue(num_datastore_writers)
-
-        locks = {'hbase':threading.Lock(), 'mysql':threading.Lock(), 'fluentd':threading.Lock()}
-        writers = {'hbase':self.hbase_mgr.state_stats_table, 'mysql':self.db_mgr, 'fluentd':event}
-
-        for i in xrange(num_fetchers):
-            FetcherWorker.FetcherWorker(url_queue, self.apikeys[i], match_rule, writers, locks, metadata_table).start()
-            
-        #for i in xrange(num_parsers):
-        #    ParserWorker.ParserWorker(text_queue,records_queue,DataParser.parse_get_state_stats_resp).start()
-
-        #for i in xrange(num_datastore_writers):
-        #    DatastoreWriterWorker.DatastoreWriterWorker(records_queue, writers, locks, match_rule, metadata_table).start()
-
-        for state_code in state_codes:
-            latest_api_call_date = self.get_latest_api_call_date("state",{"state_code":state_code})
-            now_date = TruliaDataFetcher.get_current_date()
-            url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&\
-state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=list\
-ings" + "&apikey="
-            # put url and primary key(s) value(s) of metadata table in mysql
-            url_queue.put((url_str,[state_code]))
-
-        for i in xrange(num_fetchers):
-            url_queue.put(None) # add end-of-queue markers
-
-        #url_queue.join()
-
-
-    def fetch_all_states_data_threaded(self):
-
-        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
-
-        state_codes = list(res)
-        state_code_idx = 0;
-        t1 = time.time()
-        
-        while state_code_idx < len(state_codes):
-           
-            threads = list()
-            self.fetch_metadata = list()
-            self.hbase_threads_accum = list()
-            self.fluentd_threads_accum = list()
-
-            num_threads = min(len(self.apikeys), len(state_codes)-state_code_idx)
-            
-            for thread_idx in xrange(num_threads):
-                state_code = state_codes[state_code_idx][0]
-
-                latest_rx_date = self.get_latest_api_call_date("state",{"state_code":state_code})
-
-                now_date = TruliaDataFetcher.get_current_date()
-                print 'fetching state', state_code, latest_rx_date, now_date
-
-                url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[thread_idx]
-
-                t = threading.Thread(target=self.fetch_state_threaded, args=[url_str, state_code, send_to_hdfs, now_date])
-                
-                threads.append(t)
-                state_code_idx+=1
-
-            # start down here because mysql calls above
-            for t in threads:
-                t.start()
-
-            for t in threads:
-                t.join()
-
-            for fluentd_accum in self.fluentd_threads_accum:
-                self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)
-
-            for hbase_accum in self.hbase_threads_accum:
-                self.insert_accum_hbase_records(hbase_accum)
-
-            for val_str in self.fetch_metadata:
-                self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", val_str)  
-
-            # make sure we don't use the same API key within 2 seconds
-            t2 = time.time()
-            if t2 - t1 < 2.0:
-                time.sleep(2.0 - (t2 - t1))
-            t1 = t2
-
-
-    def fetch_state_threaded(self, url_str, state_code, send_to_hdfs, now_date):
-
-        resp = urllib2.urlopen(url_str)
-        if resp.code == 200:
-            text = resp.read()
-
-            fluentd_accum, hbase_accum = DataParser.parse_get_state_stats_resp(text)
-
-            self.lock.acquire()  
-            self.hbase_threads_accum.append(hbase_accum)
-            self.fluentd_threads_accum.append(fluentd_accum)
-            self.fetch_metadata.append("('" + state_code + "',  '" + now_date + "', NOW())")
-            self.lock.release()
-
-
     def fetch_all_states_data(self):
 
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
@@ -610,7 +499,7 @@ ings" + "&apikey="
 if __name__ == "__main__":
 
     dm = DatabaseManager.DatabaseManager('../conf/')
-    #dm.reset_data_metadata_tables()
+    dm.reset_data_metadata_tables()
 
     tdf = TruliaDataFetcher('../conf/')
 
@@ -634,3 +523,115 @@ if __name__ == "__main__":
     fh.close()
     TruliaDataFetcher.parse_get_city_stats_resp(text)
     '''
+
+'''
+    def fetch_all_states_data_queue_threaded(self):
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        state_codes = [sc_tup[0] for sc_tup in res]
+        match_rule = 'state.all_list_stats'
+        metadata_table = 'data_state'
+
+        num_fetchers = len(self.apikeys)
+        num_parsers = num_fetchers * 4
+        num_datastore_writers = 3  # only 3 datastore writer types (hbase, fluentd, mysql)
+        
+        url_queue = Queue.Queue(num_fetchers)
+        text_queue = Queue.Queue(num_parsers)
+        records_queue = Queue.Queue(num_datastore_writers)
+
+        locks = {'hbase':threading.Lock(), 'mysql':threading.Lock(), 'fluentd':threading.Lock()}
+        writers = {'hbase':self.hbase_mgr.state_stats_table, 'mysql':self.db_mgr, 'fluentd':event}
+
+        for i in xrange(num_fetchers):
+            FetcherWorker.FetcherWorker(url_queue, self.apikeys[i], match_rule, writers, locks, metadata_table).start()
+            
+        #for i in xrange(num_parsers):
+        #    ParserWorker.ParserWorker(text_queue,records_queue,DataParser.parse_get_state_stats_resp).start()
+
+        #for i in xrange(num_datastore_writers):
+        #    DatastoreWriterWorker.DatastoreWriterWorker(records_queue, writers, locks, match_rule, metadata_table).start()
+
+        for state_code in state_codes:
+            latest_api_call_date = self.get_latest_api_call_date("state",{"state_code":state_code})
+            now_date = TruliaDataFetcher.get_current_date()
+            url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&\
+state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=list\
+ings" + "&apikey="
+            # put url and primary key(s) value(s) of metadata table in mysql
+            url_queue.put((url_str,[state_code]))
+
+        for i in xrange(num_fetchers):
+            url_queue.put(None) # add end-of-queue markers
+
+        #url_queue.join()
+
+
+    def fetch_all_states_data_threaded(self):
+
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+
+        state_codes = list(res)
+        state_code_idx = 0;
+        t1 = time.time()
+        
+        while state_code_idx < len(state_codes):
+           
+            threads = list()
+            self.fetch_metadata = list()
+            self.hbase_threads_accum = list()
+            self.fluentd_threads_accum = list()
+
+            num_threads = min(len(self.apikeys), len(state_codes)-state_code_idx)
+            
+            for thread_idx in xrange(num_threads):
+                state_code = state_codes[state_code_idx][0]
+
+                latest_rx_date = self.get_latest_api_call_date("state",{"state_code":state_code})
+
+                now_date = TruliaDataFetcher.get_current_date()
+                print 'fetching state', state_code, latest_rx_date, now_date
+
+                url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[thread_idx]
+
+                t = threading.Thread(target=self.fetch_state_threaded, args=[url_str, state_code, send_to_hdfs, now_date])
+                
+                threads.append(t)
+                state_code_idx+=1
+
+            # start down here because mysql calls above
+            for t in threads:
+                t.start()
+
+            for t in threads:
+                t.join()
+
+            for fluentd_accum in self.fluentd_threads_accum:
+                self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)
+
+            for hbase_accum in self.hbase_threads_accum:
+                self.insert_accum_hbase_records(hbase_accum)
+
+            for val_str in self.fetch_metadata:
+                self.db_mgr.simple_insert_query(self.db_mgr.conn, "data_state", val_str)  
+
+            # make sure we don't use the same API key within 2 seconds
+            t2 = time.time()
+            if t2 - t1 < 2.0:
+                time.sleep(2.0 - (t2 - t1))
+            t1 = t2
+
+
+    def fetch_state_threaded(self, url_str, state_code, send_to_hdfs, now_date):
+
+        resp = urllib2.urlopen(url_str)
+        if resp.code == 200:
+            text = resp.read()
+
+            fluentd_accum, hbase_accum = DataParser.parse_get_state_stats_resp(text)
+
+            self.lock.acquire()  
+            self.hbase_threads_accum.append(hbase_accum)
+            self.fluentd_threads_accum.append(fluentd_accum)
+            self.fetch_metadata.append("('" + state_code + "',  '" + now_date + "', NOW())")
+            self.lock.release()
+'''
