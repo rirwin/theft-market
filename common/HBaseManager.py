@@ -130,7 +130,7 @@ class HBaseManager:
             geo_label = json_doc['state_code']
             table = self.state_stats_table
         elif json_doc['doc_type'] == 'county_record':
-            geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['county']split(' '))
+            geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['county'].split(' '))
             table = self.county_stats_table
         elif json_doc['doc_type'] == 'zipcode_record':
             geo_label = json_doc['zipcode']
