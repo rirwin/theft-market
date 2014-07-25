@@ -4,6 +4,7 @@ import threading
 import sys
 import os
 import Queue
+import datetime
 from xml.dom import minidom
 from fluent import sender
 from fluent import event
@@ -27,8 +28,9 @@ class TruliaDataFetcher:
         self.load_trulia_params(trulia_conf)
         self.db_mgr = DatabaseManager.DatabaseManager(config_path)
 
-        self.redis_mgr = RedisManager.RedisManager()
-        #self.hbase_mgr = HBaseManager.HBaseManager()
+        # TODO make this a configuration decision
+        self.kv_mgr = RedisManager.RedisManager()
+        #self.kv_mgr = HBaseManager.HBaseManager()
         
         self.init_fluent()
 
@@ -344,13 +346,10 @@ ings" + "&apikey="
         #self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)
         
         # send to kv store
-        pprint(json_doc)
-        sys.exit(0)
-        self.hbase_mgr.insert_json_doc_records(json_doc)
-        self.redis_mgr.insert_json_doc_records(json_doc)
+        self.kv_mgr.insert_json_doc_records(json_doc)
             
         # update meta-store
-        most_recent_week = TruliaDataFetcher.get_current_date()
+        most_recent_week = json_doc['most_recent_week']
 
         self.db_mgr.establish_timestamp_and_most_recent_week(self.db_mgr.conn, metadata_table, most_recent_week, metadata_key_list)
 
@@ -425,11 +424,12 @@ ings" + "&apikey="
         if len(state_code) != 2:
             return
         else:
-            stats_doc = TruliaDataFetcher.parse_week_listings(dom_list)
+            stats_doc, most_recent_week = TruliaDataFetcher.parse_week_listings(dom_list)
             head_doc = {}
             head_doc['doc_type'] = 'state_record'
             head_doc['state_code'] = state_code
             head_doc['stats'] = stats_doc
+            head_doc['most_recent_week'] = most_recent_week
             return head_doc
 
 
@@ -445,12 +445,13 @@ ings" + "&apikey="
         if len(state_code) != 2:
             return
         else:
-            stats_doc = TruliaDataFetcher.parse_week_listings(dom_list)
+            stats_doc, most_recent_week = TruliaDataFetcher.parse_week_listings(dom_list)
             head_doc = {}
             head_doc['doc_type'] = 'city_record'
             head_doc['state_code'] = state_code
             head_doc['city'] = city
             head_doc['stats'] = stats_doc
+            head_doc['most_recent_week'] = most_recent_week
             return head_doc
 
 
@@ -466,12 +467,13 @@ ings" + "&apikey="
         if len(state_code) != 2 and len(county) > 0:
             return
         else:
-            stats_doc = TruliaDataFetcher.parse_week_listings(dom_list)
+            stats_doc, most_recent_week = TruliaDataFetcher.parse_week_listings(dom_list)
             head_doc = {}
             head_doc['doc_type'] = 'county_record'
             head_doc['state_code'] = state_code
             head_doc['county'] = county
             head_doc['stats'] = stats_doc
+            head_doc['most_recent_week'] = most_recent_week
             return head_doc
 
 
@@ -491,11 +493,12 @@ ings" + "&apikey="
         if len(zipcode) != 5:
             return
         else:
-            stats_doc = TruliaDataFetcher.parse_week_listings(dom_list)
+            stats_doc, most_recent_week = TruliaDataFetcher.parse_week_listings(dom_list)
             head_doc = {}
             head_doc['doc_type'] = 'zipcode_record'
             head_doc['zipcode'] = zipcode
             head_doc['stats'] = stats_doc
+            head_doc['most_recent_week'] = most_recent_week
             return head_doc
 
 
@@ -504,10 +507,15 @@ ings" + "&apikey="
 
         # semi-structured json document
         json_doc = {}
-
+        most_recent_week = datetime.datetime.strptime('2000-01-01', '%Y-%m-%d')
         for dom_i in dom_list:
 
-            week_ending_date = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
+            week_ending_date_str = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
+
+            week_ending_datetime = datetime.datetime.strptime(week_ending_date_str, '%Y-%m-%d') 
+            if week_ending_datetime > most_recent_week:
+                most_recent_week = week_ending_datetime
+
             week_list = dom_i.getElementsByTagName('listingPrice')
 
             for week_dom_i in week_list:
@@ -523,7 +531,7 @@ ings" + "&apikey="
                     if (TruliaDataFetcher.is_str_positive_int(k_bed)):
                         try:
                             sub_doc = {}
-                            sub_doc['week_ending_date'] = str(week_ending_date)
+                            sub_doc['week_ending_date'] = str(week_ending_date_str)
                             sub_doc['num_beds'] = int(k_bed)
 
                             # carefully parsing of sub xml dom
@@ -537,11 +545,11 @@ ings" + "&apikey="
 
                             if k_bed not in json_doc:
                                 json_doc[k_bed] = {}
-                            json_doc[k_bed][week_ending_date] = val
+                            json_doc[k_bed][week_ending_date_str] = val
                         except:
                             continue
 
-        return json_doc
+        return json_doc, most_recent_week.strftime('%Y-%m-%d')
 
 
     @staticmethod
@@ -585,13 +593,15 @@ ings" + "&apikey="
 # program
 if __name__ == "__main__":
 
+    dm = DatabaseManager.DatabaseManager('../conf/')
+    dm.reset_data_metadata_tables()
 
     tdf = TruliaDataFetcher('../conf/')
 
     # Stable functions, but single threaded
-    #tdf.fetch_all_states_data()
+    tdf.fetch_all_states_data()
     #tdf.fetch_all_counties_all_states_data()
-    tdf.fetch_all_cities_all_states_data()
+    #tdf.fetch_all_cities_all_states_data()
     #tdf.fetch_all_zipcodes_data()
     
 
