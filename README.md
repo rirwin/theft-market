@@ -65,9 +65,16 @@ http://<ipaddress>/data/zipcode/volume?q={"zipcode":"02458","num_bedrooms":3,"st
 
 ## 3. Operation
 
-1. Get your api-keys and put them into this file:
+1. Edit your configuation files
+
+    a) Get your api-keys and put them into this file:
 
          $ emacs theft-market/conf/theft-market.conf
+         
+    b) Set the datastore timing access path to a user path with permission for writing
+
+         $ emacs theft-market/conf/theft-metastore.conf
+
 
 2. Get geographic areas metadata
          
