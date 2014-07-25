@@ -56,7 +56,7 @@ class TruliaDataFetcher:
         sender.setup('hdfs')
 
 
-    def get_latest_rx_date(self, obj_type, obj_key_dict):
+    def get_latest_list_stat_date(self, obj_type, obj_key_dict):
         table_str = "data_" + obj_type
         where_str = ""
         for k in obj_key_dict:
@@ -64,10 +64,26 @@ class TruliaDataFetcher:
         where_str = where_str[:-4]
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, table_str, "most_recent_week", where_str)
         if len(res) == 0:
-            latest_rx_date = "2000-01-01"
+            latest_ls_date = "2000-01-01"
         else:
-            latest_rx_date = str(res[0][0])
-        return latest_rx_date
+            latest_ls_date = str(res[0][0])
+        return latest_ls_date
+
+
+
+    def get_latest_api_call_date(self, obj_type, obj_key_dict):
+        table_str = "data_" + obj_type
+        where_str = ""
+        for k in obj_key_dict:
+            where_str += k + " = '" + str(obj_key_dict[k]) + "' and "
+        where_str = where_str[:-4]
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, table_str, "timestamp", where_str)
+        if len(res) == 0:
+            latest_ac_date = "2000-01-01"
+        else:
+            latest_ac_date = datetime.datetime.strftime(res[0][0], '%Y-%m-%d %H:%M:%S').split(' ')[0]
+
+        return latest_ac_date
 
 
     def fetch_all_states_data_queue_threaded(self):
@@ -97,7 +113,7 @@ class TruliaDataFetcher:
         #    DatastoreWriterWorker.DatastoreWriterWorker(records_queue, writers, locks, match_rule, metadata_table).start()
 
         for state_code in state_codes:
-            latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
+            latest_api_call_date = self.get_latest_api_call_date("state",{"state_code":state_code})
             now_date = TruliaDataFetcher.get_current_date()
             url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&\
 state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=list\
@@ -131,7 +147,7 @@ ings" + "&apikey="
             for thread_idx in xrange(num_threads):
                 state_code = state_codes[state_code_idx][0]
 
-                latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
+                latest_rx_date = self.get_latest_api_call_date("state",{"state_code":state_code})
 
                 now_date = TruliaDataFetcher.get_current_date()
                 print 'fetching state', state_code, latest_rx_date, now_date
@@ -193,7 +209,7 @@ ings" + "&apikey="
 
 
     def fetch_state(self, state_code):
-        latest_rx_date = self.get_latest_rx_date("state",{"state_code":state_code})
+        latest_rx_date = self.get_latest_api_call_date("state",{"state_code":state_code})
         now_date = TruliaDataFetcher.get_current_date()
 
         print "fetching state data about", state_code, "data from", latest_rx_date, "to", now_date,
@@ -238,7 +254,7 @@ ings" + "&apikey="
 
     def fetch_city(self, city, state_code):
 
-        latest_rx_date = self.get_latest_rx_date("city",{"state_code":state_code,"city":city})
+        latest_rx_date = self.get_latest_api_call_date("city",{"state_code":state_code,"city":city})
         now_date = TruliaDataFetcher.get_current_date()
 
         print "fetching city data about", city, state_code, "from", latest_rx_date, "to", now_date
@@ -284,7 +300,7 @@ ings" + "&apikey="
 
     def fetch_county(self, county, state_code):
 
-        latest_rx_date = self.get_latest_rx_date("county",{"state_code":state_code,"county":county})
+        latest_rx_date = self.get_latest_api_call_date("county",{"state_code":state_code,"county":county})
         now_date = TruliaDataFetcher.get_current_date()
 
         print "fetching county data about", county, state_code, "from", latest_rx_date, "to", now_date
@@ -323,7 +339,7 @@ ings" + "&apikey="
 
     def fetch_zipcode_data(self, zipcode):
 
-        latest_rx_date = self.get_latest_rx_date("zipcode",{"zipcode":zipcode})
+        latest_rx_date = self.get_latest_api_call_date("zipcode",{"zipcode":zipcode})
         now_date = TruliaDataFetcher.get_current_date()
         print "fetching zipcode data about", zipcode, "from", latest_rx_date, "to", now_date
         url_str = self.url + "library=" + self.stats_library + "&function=getZipCodeStats&zipCode=" + zipcode + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
@@ -594,7 +610,7 @@ ings" + "&apikey="
 if __name__ == "__main__":
 
     dm = DatabaseManager.DatabaseManager('../conf/')
-    dm.reset_data_metadata_tables()
+    #dm.reset_data_metadata_tables()
 
     tdf = TruliaDataFetcher('../conf/')
 
