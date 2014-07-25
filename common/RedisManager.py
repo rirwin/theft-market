@@ -93,6 +93,29 @@ class RedisManager:
         key = '|'.join([namespace, str(num_bedrooms), geo_label,list_datetime])
         self.conn.set(key, {'a':list_average,'n':list_volume})
 
+    @wrappers.general_function_handler
+    def insert_json_records(self, json_doc):
+        if json_doc['doc_type'] == 'state_record':
+            geo_label = json_doc['state_code']
+            namespace = 'ST'
+        elif json_doc['doc_type'] == 'county_record':
+            geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['county'].lower().split(' '))
+            namespace = 'CO'
+        elif json_doc['doc_type'] == 'zipcode_record':
+            geo_label = json_doc['zipcode']
+            namespace = 'ZP'
+        elif json_doc['doc_type'] == 'city_record':
+            geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['city'].lower().split(' '))
+            namespace = 'CI'
+
+        for bed_i in json_doc['stats']:
+            for week_i in json_doc['stats'][bed_i]:
+                rec = json_doc['stats'][bed_i][week_i]
+                avg = rec['a']
+                num = rec['n']
+                self.redis_mgr.set_listing(namespace, geo_label, bed_i, week_i, avg, num)
+
+
 
 def main():
 

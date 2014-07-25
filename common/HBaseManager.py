@@ -1,6 +1,6 @@
 import happybase
 import datetime
-import threading
+import pprint
 
 # collection of exception handlers and logging wrappers
 import wrappers
@@ -58,11 +58,20 @@ class HBaseManager:
         
 
     @wrappers.general_function_handler
-    def get_city_list_volume(self, state_code, city, num_bedrooms, start_date, end_date):
-        
-        row_key = '-'.join([state_code, city, str(num_bedrooms)])
+    def get_list_volume(self, geo_type, geo_label, num_bedrooms, start_date, end_date):
 
-        data =  self.city_stats_table.row(row_key)
+        if geo_type == 'ST':
+            table = self.state_stats_table
+        elif geo_type == 'CI':
+            table = self.city_stats_table
+        elif geo_type == 'CO':
+            table = self.county_stats_table
+        elif geo_type == 'ZP':
+            table = self.county_stats_table
+
+        row_key = '|'.join([str(num_bedrooms), geo_label])
+
+        data =  table.row(row_key)
 
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
@@ -79,11 +88,21 @@ class HBaseManager:
 
         
     @wrappers.general_function_handler
-    def get_city_list_average(self, state_code, city, num_bedrooms, start_date, end_date):
-        
-        row_key = '-'.join([state_code, city, str(num_bedrooms)])
+    def get_list_average(self, state_code, city, num_bedrooms, start_date, end_date):
 
-        data =  self.city_stats_table.row(row_key)
+        if geo_type == 'ST':
+            table = self.state_stats_table
+        elif geo_type == 'CI':
+            table = self.city_stats_table
+        elif geo_type == 'CO':
+            table = self.county_stats_table
+        elif geo_type == 'ZP':
+            table = self.county_stats_table
+
+        
+        row_key = '|'.join([str(num_bedrooms), geo_label])
+
+        data = table.row(row_key)
 
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
@@ -105,61 +124,31 @@ class HBaseManager:
 
 
     @wrappers.general_function_handler
-    def get_zipcode_list_volume(self, zipcode, num_bedrooms, start_date, end_date):
-        
-        row_key = '-'.join([zipcode, str(num_bedrooms)])
+    def insert_json_doc_records(self, json_doc):
 
-        data =  self.zipcode_stats_table.row(row_key)
+        if json_doc['doc_type'] == 'state_record':
+            geo_label = json_doc['state_code']
+            table = self.state_stats_table
+        elif json_doc['doc_type'] == 'county_record':
+            geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['county']split(' '))
+            table = self.county_stats_table
+        elif json_doc['doc_type'] == 'zipcode_record':
+            geo_label = json_doc['zipcode']
+            table = self.zipcode_stats_table
+        elif json_doc['doc_type'] == 'city_record':
+            geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['city'].split(' '))
+            table = self.city_stats_table
 
-        start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
-        end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+        geo_label = geo_label.lower()
 
-        filtered_keys = [k for k in data.keys() if k.startswith('cf:') \
-                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") < end_datetime \
-                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") > start_datetime]
-
-        sum_ = 0
-        for key in filtered_keys:
-            sum_ += int(eval(data[key])['n'])
-
-        return sum_
-
-        
-    @wrappers.general_function_handler
-    def get_zipcode_list_average(self, zipcode, num_bedrooms, start_date, end_date):
-        
-        row_key = '-'.join([zipcode, str(num_bedrooms)])
-
-        data =  self.zipcode_stats_table.row(row_key)
-
-        start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
-        end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
-
-        # Pythonic way to extract relevant columns of row
-        filtered_keys = [k for k in data.keys() if k.startswith('cf:') \
-                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") < end_datetime \
-                             and datetime.datetime.strptime(k[3:],"%Y-%m-%d") > start_datetime]
-
-        num = 0
-        denom = 0
-        for key in filtered_keys:
-            num += int(eval(data[key])['a'])*int(eval(data[key])['n'])
-            denom += int(eval(data[key])['n'])
-        if denom == 0:
-            return 0
-        else:
-            return round(float(num)/float(denom))
-
-    @wrappers.general_function_handler
-    def simple_put(self, table, row_key, row_dict):
-        self.lock.acquire()
-        if table == "state_stats":
-            print "in simple_put"
-            print row_key
-            print row_dict
-            self.state_stats_table.put(row_key, row_dict)
-        self.lock.release()
-
+        for bed_i in json_doc['stats']:
+            row_dict = {}
+            for week_i in json_doc['stats'][bed_i]:
+                rec = json_doc['stats'][bed_i][week_i]
+                row_dict['cf:' + week_i] = {'a':rec['a'],'n':rec['n']}
+                
+            row_key = str(bed_i) + '|' + geo_label
+            table.put(row_key, row_dict)
 
 def main():
 

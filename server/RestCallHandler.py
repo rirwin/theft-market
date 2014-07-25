@@ -488,8 +488,9 @@ def get_data(kv_store_mgr, db_mgr, params_dict):
 
         
 def get_state_list_volume_dict(kv_store_mgr, state_code, num_bedrooms, start_date, end_date):
+
     lv_dict = {}
-    geo_label = state_code.lower()
+    geo_label = state_code.lower() 
     geo_type = 'ST'
     list_volume = kv_store_mgr.get_list_volume(geo_type, geo_label, num_bedrooms, start_date, end_date)
 

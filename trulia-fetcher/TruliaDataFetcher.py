@@ -26,9 +26,10 @@ class TruliaDataFetcher:
         trulia_conf = TruliaConfLoader.TruliaConfLoader(config_path)
         self.load_trulia_params(trulia_conf)
         self.db_mgr = DatabaseManager.DatabaseManager(config_path)
-        self.redis_mgr = RedisManager.RedisManager()
 
+        self.redis_mgr = RedisManager.RedisManager()
         #self.hbase_mgr = HBaseManager.HBaseManager()
+        
         self.init_fluent()
 
         # lock for threads to use to add to fetch_metadata
@@ -335,6 +336,7 @@ ings" + "&apikey="
         self.write_executor(json_doc, metadata_table, now_date, metadata_key_list)
         return True
 
+
     def write_executor(self, json_doc, metadata_table, most_recent_week, metadata_key_list):
         # send to archive store
         # TODO send to S3
@@ -342,8 +344,10 @@ ings" + "&apikey="
         #self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)
         
         # send to kv store
-        #self.insert_accum_hbase_records(hbase_accum)
-        self.insert_accum_redis_records(json_doc)
+        pprint(json_doc)
+        sys.exit(0)
+        self.hbase_mgr.insert_json_doc_records(json_doc)
+        self.redis_mgr.insert_json_doc_records(json_doc)
             
         # update meta-store
         most_recent_week = TruliaDataFetcher.get_current_date()
@@ -391,36 +395,6 @@ ings" + "&apikey="
             event.Event(match_rule, record)
 
 
-    def insert_accum_hbase_records(self, hbase_accum):
-        for key in hbase_accum:
-            try:
-                self.hbase_mgr.state_stats_table.put(key, hbase_accum[key])
-            except:
-                print "Exception while inserting", key, "into HBase new function"
-
-
-    def insert_accum_redis_records(self, json_doc):
-        if json_doc['doc_type'] == 'state_record':
-            geo_label = json_doc['state_code']
-            namespace = 'ST'
-        elif json_doc['doc_type'] == 'county_record':
-            geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['county'].lower().split(' '))
-            namespace = 'CO'
-        elif json_doc['doc_type'] == 'zipcode_record':
-            geo_label = json_doc['zipcode']
-            namespace = 'ZP'
-        elif json_doc['doc_type'] == 'city_record':
-            geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['city'].lower().split(' '))
-            namespace = 'CI'
-
-        for bed_i in json_doc['stats']:
-            for week_i in json_doc['stats'][bed_i]:
-                rec = json_doc['stats'][bed_i][week_i]
-                avg = rec['a']
-                num = rec['n']
-                self.redis_mgr.set_listing(namespace, geo_label, bed_i, week_i, avg, num)
-
-
     @staticmethod
     def get_current_date():
         return time.strftime("%Y-%m-%d")
@@ -439,11 +413,6 @@ ings" + "&apikey="
 
 
     # Static parsing methods
-    # each are manual because we have a different schema
-    # and each handles dirty data in different ways
-    # TODO merge some common functionalities
-
-    # TODO add redis and clean up code that has hbase and fluentd baked in too much
 
     @staticmethod
     def parse_get_state_stats_resp(text):
@@ -613,17 +582,17 @@ ings" + "&apikey="
         return stat_dict
 
 
-# unit-test
+# program
 if __name__ == "__main__":
 
 
     tdf = TruliaDataFetcher('../conf/')
 
     # Stable functions, but single threaded
-    tdf.fetch_all_states_data()
-    tdf.fetch_all_counties_all_states_data()
+    #tdf.fetch_all_states_data()
+    #tdf.fetch_all_counties_all_states_data()
     tdf.fetch_all_cities_all_states_data()
-    tdf.fetch_all_zipcodes_data()
+    #tdf.fetch_all_zipcodes_data()
     
 
     # not much faster
