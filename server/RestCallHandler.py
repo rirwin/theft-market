@@ -2,7 +2,8 @@ import json
 import datetime
 import time
 import logging
-logging.basicConfig(filename='/home/ubuntu/theft-market/server/log/datastore_access_timing.log',level=logging.INFO)
+# TODO make configurable
+logging.basicConfig(filename='/Users/rirwin/theft-market/server/log/datastore_access_timing.log',level=logging.INFO)
 
 ### Functions for handling queries
 
@@ -57,6 +58,53 @@ class city_query_handler(object):
         return retval
 
 
+class state_query_handler(object):
+    def __init__(self, func):
+        self.func = func
+    def __get__(self, obj, type=None):
+        return self.__class__(self.func.__get__(obj, type))
+    def __call__(self, *args, **kw):
+
+        try:
+            params_dict = eval(args[2])
+        except:
+            return "400 - malformed parameters dictionary", 400
+    
+        valid, msg = check_params_dict_keys(params_dict, ['state_code','num_bedrooms','start_date','end_date'])
+
+        if valid is False:
+            return msg, 400
+
+        # checks for alpha characters (and allows space or %20 for city names) 
+        # TODO make function  and allow hyphens, periods, and other valid characters
+        # not sure if this is a problem
+        if params_dict['state_code'].isalpha() is False:
+            return "non alphabet characters for state " + params_dict['state_code'], 400
+
+        try:
+            int(params_dict['num_bedrooms'])
+        except:
+            return "400 - Malformed number of bedrooms, integer please"
+    
+        if len(params_dict['state_code']) != 2:
+            return "please use state_code as 'CA'", 400
+
+        params_dict['state_code'] = params_dict['state_code'].lower()
+
+        if is_valid_date(params_dict['start_date']) is False:
+            return "400 - malformed start_date parameter (YYYY-MM-DD needed)"
+
+        if is_valid_date(params_dict['end_date']) is False:
+            return "400 - malformed end_date parameter (YYYY-MM-DD needed)"
+    
+        if datetime.datetime.strptime(params_dict['start_date'], '%Y-%m-%d') > datetime.datetime.strptime(params_dict['end_date'], '%Y-%m-%d'):
+            return "400 - start_date after than end_date"
+        
+        retval = self.func(args[0], args[1], params_dict, **kw)
+
+        return retval
+
+
 class zipcode_query_handler(object):
     def __init__(self, func):
         self.func = func
@@ -102,13 +150,13 @@ class zipcode_query_handler(object):
 
 
 @city_query_handler
-def handle_data_city_volume_query(hbase_mgr, db_mgr, params_dict):
+def handle_data_city_volume_query(kv_store_mgr, db_mgr, params_dict):
 
     # add a few params to params_dict
     params_dict["_subject_type"] = "city"
     params_dict["_query_type"] = "volume"
 
-    json_data = get_data(hbase_mgr, db_mgr, params_dict)
+    json_data = get_data(kv_store_mgr, db_mgr, params_dict)
 
     return json.dumps(json_data)
 
@@ -119,42 +167,66 @@ def is_valid_city(city):
     return True
         
 @city_query_handler
-def handle_data_city_average_query(hbase_mgr, db_mgr, params_dict):
+def handle_data_city_average_query(kv_store_mgr, db_mgr, params_dict):
 
     # add a few params to params_dict
     params_dict["_subject_type"] = "city"
     params_dict["_query_type"] = "average"
 
-    json_data = get_data(hbase_mgr, db_mgr, params_dict)
+    json_data = get_data(kv_store_mgr, db_mgr, params_dict)
 
     return json.dumps(json_data)
 
 
 @zipcode_query_handler
-def handle_data_zipcode_volume_query(hbase_mgr, db_mgr, params_dict):
+def handle_data_zipcode_volume_query(kv_store_mgr, db_mgr, params_dict):
 
     # add a few params to params_dict
     params_dict["_subject_type"] = "zipcode"
     params_dict["_query_type"] = "volume"
 
-    json_data = get_data(hbase_mgr, db_mgr, params_dict)
+    json_data = get_data(kv_store_mgr, db_mgr, params_dict)
 
     return json.dumps(json_data)
 
 
 @zipcode_query_handler
-def handle_data_zipcode_average_query(hbase_mgr, db_mgr, params_dict):
+def handle_data_zipcode_average_query(kv_store_mgr, db_mgr, params_dict):
 
     # add a few params to params_dict
     params_dict["_subject_type"] = "zipcode"
     params_dict["_query_type"] = "average"
 
-    json_data = get_data(hbase_mgr, db_mgr, params_dict)
+    json_data = get_data(kv_store_mgr, db_mgr, params_dict)
 
     return json.dumps(json_data)
 
 
-def get_data(hbase_mgr, db_mgr, params_dict):
+@state_query_handler
+def handle_data_state_volume_query(kv_store_mgr, db_mgr, params_dict):
+
+    # add a few params to params_dict
+    params_dict["_subject_type"] = "state"
+    params_dict["_query_type"] = "volume"
+
+    json_data = get_data(kv_store_mgr, db_mgr, params_dict)
+
+    return json.dumps(json_data)
+
+
+@state_query_handler
+def handle_data_state_average_query(kv_store_mgr, db_mgr, params_dict):
+
+    # add a few params to params_dict
+    params_dict["_subject_type"] = "state"
+    params_dict["_query_type"] = "average"
+
+    json_data = get_data(kv_store_mgr, db_mgr, params_dict)
+
+    return json.dumps(json_data)
+
+
+def get_data(kv_store_mgr, db_mgr, params_dict):
 
     start_date = params_dict['start_date']
     end_date = params_dict['end_date']
@@ -180,10 +252,10 @@ def get_data(hbase_mgr, db_mgr, params_dict):
 
             json_resp = []
             for nearby_city in nearby_cities:
-                json_resp.append(get_city_list_volume_dict(hbase_mgr, nearby_city[0], nearby_city[1], num_bedrooms, start_date, end_date))
+                json_resp.append(get_city_list_volume_dict(kv_store_mgr, nearby_city[0], nearby_city[1], num_bedrooms, start_date, end_date))
 
             for nearby_zipcode in nearby_zipcodes:
-                json_resp.append(get_zipcode_list_volume_dict(hbase_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
+                json_resp.append(get_zipcode_list_volume_dict(kv_store_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
             
             return json_resp
 
@@ -191,12 +263,12 @@ def get_data(hbase_mgr, db_mgr, params_dict):
 
             json_resp = []
             for nearby_city in nearby_cities:
-                json_resp.append(get_city_list_average_dict(hbase_mgr, nearby_city[0], nearby_city[1], num_bedrooms, start_date, end_date))
+                json_resp.append(get_city_list_average_dict(kv_store_mgr, nearby_city[0], nearby_city[1], num_bedrooms, start_date, end_date))
 
             get_city_list_average_dict_completed = time.time()
 
             for nearby_zipcode in nearby_zipcodes:
-                json_resp.append(get_zipcode_list_average_dict(hbase_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
+                json_resp.append(get_zipcode_list_average_dict(kv_store_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
             
             get_zipcode_list_average_dict_completed = time.time()
 
@@ -204,8 +276,8 @@ def get_data(hbase_mgr, db_mgr, params_dict):
             logging.info("------------- Start Data Warehouse Access -----------------")
             logging.info("get nearby cities from MySQL (GPS calculations) took: " + str(get_city_and_nearby_cities_complete - get_data_start) + "s")
             logging.info("get nearby zipcodes from MySQL (GPS calculations) took: " + str(get_nearby_zipcodes_complete - get_city_and_nearby_cities_complete) + "s")
-            logging.info("get city average listings from HBase (10 row lookup and manipulation) took: " + str(get_city_list_average_dict_completed - get_nearby_zipcodes_complete) + "s")
-            logging.info("get zipcode average listings from HBase (10 row lookup and manipulation) took: " + str(get_zipcode_list_average_dict_completed - get_city_list_average_dict_completed) + "s")
+            logging.info("get city average listings from KV Store (10 city lookup and manipulation) took: " + str(get_city_list_average_dict_completed - get_nearby_zipcodes_complete) + "s")
+            logging.info("get zipcode average listings from KV Store (10 zipcode lookup and manipulation) took: " + str(get_zipcode_list_average_dict_completed - get_city_list_average_dict_completed) + "s")
             logging.info("Total time took: " +  str(time.time() - get_data_start) + "s")
             logging.info("------------- Done with Data Warehouse Access -----------------")
 
@@ -225,7 +297,7 @@ def get_data(hbase_mgr, db_mgr, params_dict):
 
             json_resp = []
             for nearby_zipcode in nearby_zipcodes:
-                json_resp.append(get_zipcode_list_volume_dict(hbase_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
+                json_resp.append(get_zipcode_list_volume_dict(kv_store_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
             
             return json_resp
 
@@ -233,16 +305,69 @@ def get_data(hbase_mgr, db_mgr, params_dict):
 
             json_resp = []
             for nearby_zipcode in nearby_zipcodes:
-                json_resp.append(get_zipcode_list_average_dict(hbase_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
+                json_resp.append(get_zipcode_list_average_dict(kv_store_mgr, nearby_zipcode, num_bedrooms, start_date, end_date))
+            
+            return json_resp
+
+    elif params_dict["_subject_type"] == "state":
+        
+        nearby_states = [params_dict['state_code']]#get_state_and_nearby_states(db_mgr, params_dict['state'])
+    
+        if nearby_states is None:
+            return {"query result":"No result found","state": params_dict['state']}
+
+        if params_dict["_query_type"] == "volume":
+
+            json_resp = []
+            for state in nearby_states:
+                json_resp.append(get_state_list_volume_dict(kv_store_mgr, state, num_bedrooms, start_date, end_date))
+            
+            return json_resp
+
+        elif params_dict["_query_type"] == "average":
+
+            json_resp = []
+            for state in nearby_states:
+                json_resp.append(get_state_list_average_dict(kv_store_mgr, state, num_bedrooms, start_date, end_date))
             
             return json_resp
 
         
-
-def get_city_list_volume_dict(hbase_mgr, state_code, city, num_bedrooms, start_date, end_date):
+def get_state_list_volume_dict(kv_store_mgr, state_code, num_bedrooms, start_date, end_date):
     lv_dict = {}
-    city_ = '_'.join(city.split(' ')).lower()
-    list_volume = hbase_mgr.get_city_list_volume(state_code.lower(), city_, num_bedrooms, start_date, end_date)
+    geo_label = state_code.lower()
+    geo_type = 'ST'
+    list_volume = kv_store_mgr.get_list_volume(geo_type, geo_label, num_bedrooms, start_date, end_date)
+
+    lv_dict['list_volume'] = list_volume
+    lv_dict['num_bedrooms'] = num_bedrooms
+    lv_dict['start_date'] = start_date
+    lv_dict['end_date'] = end_date
+    lv_dict['state_code'] = state_code
+    
+    return lv_dict
+
+
+def get_state_list_average_dict(kv_store_mgr, state_code, num_bedrooms, start_date, end_date):
+    la_dict = {}
+    geo_label = state_code.lower()
+    geo_type = 'ST'
+    list_average = kv_store_mgr.get_list_average(geo_type, geo_label, num_bedrooms, start_date, end_date)
+
+    la_dict['list_average'] = list_average
+    la_dict['num_bedrooms'] = num_bedrooms
+    la_dict['start_date'] = start_date
+    la_dict['end_date'] = end_date
+    la_dict['state_code'] = state_code
+    
+    return la_dict
+
+
+def get_city_list_volume_dict(kv_store_mgr, state_code, city, num_bedrooms, start_date, end_date):
+    lv_dict = {}
+    geo_label = state_code.lower() + '-' + '_'.join(city.split(' ')).lower()
+    geo_type = 'CI'
+    list_volume = kv_store_mgr.get_list_volume(geo_type, geo_label, num_bedrooms, start_date, end_date)
 
     lv_dict['list_volume'] = list_volume
     lv_dict['num_bedrooms'] = num_bedrooms
@@ -254,12 +379,13 @@ def get_city_list_volume_dict(hbase_mgr, state_code, city, num_bedrooms, start_d
     return lv_dict
 
 
-def get_city_list_average_dict(hbase_mgr, state_code, city, num_bedrooms, start_date, end_date):
+def get_city_list_average_dict(kv_store_mgr, state_code, city, num_bedrooms, start_date, end_date):
     la_dict = {}
-    city_ = '_'.join(city.split(' ')).lower()
-    list_volume = hbase_mgr.get_city_list_average(state_code.lower(), city_, num_bedrooms, start_date, end_date)
+    geo_label = state_code.lower() + '-' + '_'.join(city.split(' ')).lower()
+    geo_type = 'CI'
+    list_average = kv_store_mgr.get_list_average(geo_type, geo_label, num_bedrooms, start_date, end_date)
 
-    la_dict['list_average'] = list_volume
+    la_dict['list_average'] = list_average
     la_dict['num_bedrooms'] = num_bedrooms
     la_dict['start_date'] = start_date
     la_dict['end_date'] = end_date
@@ -269,10 +395,42 @@ def get_city_list_average_dict(hbase_mgr, state_code, city, num_bedrooms, start_
     return la_dict
 
 
-def get_zipcode_list_volume_dict(hbase_mgr, zipcode, num_bedrooms, start_date, end_date):
+def get_county_list_volume_dict(kv_store_mgr, state_code, county, num_bedrooms, start_date, end_date):
     lv_dict = {}
+    geo_label = state_code.lower() + '-' + '_'.join(county.split(' ')).lower()
+    geo_type = 'CI'
+    list_volume = kv_store_mgr.get_list_volume(geo_type, geo_label, num_bedrooms, start_date, end_date)
 
-    list_volume = hbase_mgr.get_zipcode_list_volume(zipcode, num_bedrooms, start_date, end_date)
+    lv_dict['list_volume'] = list_volume
+    lv_dict['num_bedrooms'] = num_bedrooms
+    lv_dict['start_date'] = start_date
+    lv_dict['end_date'] = end_date
+    lv_dict['county'] = county
+    lv_dict['state_code'] = state_code
+    
+    return lv_dict
+
+
+def get_county_list_average_dict(kv_store_mgr, state_code, county, num_bedrooms, start_date, end_date):
+    la_dict = {}
+    geo_label = state_code.lower() + '-' + '_'.join(county.split(' ')).lower()
+    geo_type = 'CI'
+    list_average = kv_store_mgr.get_county_list_average(geo_type, geo_label, num_bedrooms, start_date, end_date)
+
+    la_dict['list_average'] = list_average
+    la_dict['num_bedrooms'] = num_bedrooms
+    la_dict['start_date'] = start_date
+    la_dict['end_date'] = end_date
+    la_dict['county'] = county
+    la_dict['state_code'] = state_code
+    
+    return la_dict
+
+
+def get_zipcode_list_volume_dict(kv_store_mgr, zipcode, num_bedrooms, start_date, end_date):
+    lv_dict = {}
+    geo_type = 'ZP'
+    list_volume = kv_store_mgr.get_list_volume(geo_type, zipcode, num_bedrooms, start_date, end_date)
 
     lv_dict['list_volume'] = list_volume
     lv_dict['num_bedrooms'] = num_bedrooms
@@ -283,12 +441,12 @@ def get_zipcode_list_volume_dict(hbase_mgr, zipcode, num_bedrooms, start_date, e
     return lv_dict
 
 
-def get_zipcode_list_average_dict(hbase_mgr, zipcode, num_bedrooms, start_date, end_date):
+def get_zipcode_list_average_dict(kv_store_mgr, zipcode, num_bedrooms, start_date, end_date):
     la_dict = {}
+    geo_type = 'ZP'
+    list_average = kv_store_mgr.get_list_average(geo_type, zipcode, num_bedrooms, start_date, end_date)
 
-    list_volume = hbase_mgr.get_zipcode_list_average(zipcode, num_bedrooms, start_date, end_date)
-
-    la_dict['list_average'] = list_volume
+    la_dict['list_average'] = list_average
     la_dict['num_bedrooms'] = num_bedrooms
     la_dict['start_date'] = start_date
     la_dict['end_date'] = end_date
@@ -322,6 +480,23 @@ def is_ascii(param):
         return False
     return True
     
+
+def get_nearby_places(dm, table_str, pri_key_list, rad_mi):
+
+    res = dm.simple_select_query(dm.conn, table_str, "latitude, longitude",' and '.join(pri_key_list))
+    if len(res) == 0:
+        return None
+    
+    lat = str(res[0][0])
+    lon = str(res[0][1])
+
+    # TODO move to configuration or arg
+    limit = '10'
+
+    # TODO clean this up
+    nearby_places = dm.simple_select_query(dm.conn, table_str + " HAVING distance < " + rad_mi + " ORDER BY distance LIMIT 0 , " + limit, "state_code, city, ( 3959 * acos( cos( radians(" + lat + ") ) * cos( radians( latitude ) ) * cos( radians( longitude ) - radians(" + lon +") ) + sin( radians(" + lat + ") ) * sin( radians( latitude ) ) ) ) AS distance")
+
+    return nearby_places
 
 def get_city_and_nearby_cities(dm, state_code, city):
 

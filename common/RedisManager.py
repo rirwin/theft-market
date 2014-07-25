@@ -7,7 +7,7 @@ import wrappers
 # redis keys are stored
 # <namespace>|<k_bedrooms>|<geographic_label>| ...
 # |<date: YYYY_MM_DD>
-# namespace for state is ST, city: CI, county CO, zipcode ZC
+# namespace for state is ST, city: CI, county CO, zipcode ZP
 # the value is {'a':avg_list_price, 'n':num_listings}
 
 # geo label for state is just the state_code (XX)
@@ -32,21 +32,20 @@ class RedisManager:
     def get_list_volume(self, namespace, geo_label, num_bedrooms, start_date, end_date):
 
         keys = self.conn.keys('|'.join([namespace, str(num_bedrooms), geo_label]) + '*')
-
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
         
         filtered_keys = []
         for k in keys:
             attrs = k.split('|')
-            key_datetime = datetime.datetime(attrs[-1],"%Y-%m-%d")
+            key_datetime = datetime.datetime.strptime(attrs[-1],"%Y-%m-%d")
             if key_datetime > start_datetime and key_datetime < end_datetime:
                 filtered_keys.append(k)
 
         sum_ = 0
         for key in filtered_keys:
             sum_ += int(eval(self.conn.get(key))['n'])
-
+    
         return sum_
 
         
@@ -60,7 +59,7 @@ class RedisManager:
         filtered_keys = []
         for k in keys:
             attrs = k.split('|')
-            key_datetime = datetime.datetime(attrs[-1],"%Y-%m-%d")
+            key_datetime = datetime.datetime.strptime(attrs[-1],"%Y-%m-%d")
             if key_datetime > start_datetime and key_datetime < end_datetime:
                 filtered_keys.append(k)
 
@@ -82,6 +81,7 @@ class RedisManager:
 
     @wrappers.general_function_handler
     def set_listing(self, namespace, geo_label, num_bedrooms, list_datetime, list_average, list_volume):
+        geo_label = geo_label.lower()
         try:
             int(num_bedrooms)
             float(list_average) # int or float is fine
