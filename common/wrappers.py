@@ -1,7 +1,11 @@
 import logging
 import sys
-# TODO make a config item
-logging.basicConfig(filename='/Users/rirwin/theft-market/server/log/datastore_access_timing.log',level=logging.INFO)
+import ConfigParser
+
+config_path  = "../conf/"
+config = ConfigParser.ConfigParser()
+config.read(config_path + "theft-metastore.conf")
+logging.basicConfig(filename = config.get("main", "datastore-access-time-log-path"), level = config.get("main", "loglevel"))
 
 class logger(object):
     def __init__(self, func):
