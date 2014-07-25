@@ -20,7 +20,7 @@ Manual Install
   a.  Ubuntu
 
       $ sudo apt-get update
-      $ sudo apt-get install git python-dev python-pip mysql-client mysql-server apache2 libapache2-mod-wsgi rubygems emacs python-mysqldb
+      $ sudo apt-get install git python-dev python-pip mysql-client mysql-server apache2 libapache2-mod-wsgi rubygems emacs python-mysqldb redis-server
 
     Fluentd's install script provided by fluentd (if planning to use Hue wait until after Hue is initialized)
     
