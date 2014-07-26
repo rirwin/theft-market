@@ -122,20 +122,23 @@ class DatabaseManager:
 
     @wrappers.logger
     @wrappers.database_function_handler
-    def establish_timestamp_and_most_recent_week(self, cursor, table_str, most_recent_week_fetched, pri_key_match_list):
+    def establish_timestamp_and_most_recent_week(self, cursor, table_str, most_recent_week, date_fetched, pri_key_match_list):
+
         cursor.execute("select count(*) from " + table_str + " where " + ' and '.join(pri_key_match_list))
         res = cursor.fetchone()[0]
         if res == 1:
-            cursor.execute("update " + table_str + " set timestamp = NOW(), most_recent_week = '" + most_recent_week_fetched + "' where " + ' and '.join(pri_key_match_list)) 
+            cursor.execute("select most_recent_week from " + table_str + " where " + ' and '.join(pri_key_match_list))
+            curr_latest_week = cursor.fetchone()[0]
+            if datetime.datetime.strptime(curr_latest_week, '%Y-%m-%d') < datetime.datetime.strptime(most_recent_week, '%Y-%m-%d'):
+                cursor.execute("update " + table_str + " set timestamp = NOW(), most_recent_week = '" + most_recent_week + ", date_fetched = '" + date_fetched + "'  where " + ' and '.join(pri_key_match_list)) 
         else:
             # remove all entries
             if res > 0:
                 cursor.execute("delete from " + table_str + "' where " + ' and '.join(pri_key_match_list))
-
             val_str = "("
             for key_i in pri_key_match_list:
                 val_str += key_i.split('=')[1] + ","
-            val_str += "'" + most_recent_week_fetched + "', NOW())"
+            val_str += "'" + most_recent_week + "','" + date_fetched + "', NOW())"
             cursor.execute("insert into " + table_str + " values " + val_str)
         
 

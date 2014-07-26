@@ -57,6 +57,7 @@
     { "schema": [
        ["state_code","varchar"],
        ["most_recent_week","date"],
+       ["date_fetched","date"],
        ["timestamp","timestamp"]
       ],
       "primary_key":"(state_code, timestamp)",
@@ -67,6 +68,7 @@
        ["state_code","varchar"],
        ["city","varchar"],
        ["most_recent_week","date"],
+       ["date_fetched","date"],
        ["timestamp","timestamp"]
       ],
       "primary_key":"(state_code, city, timestamp)",
@@ -77,6 +79,7 @@
        ["state_code","varchar"],
        ["county","varchar"],
        ["most_recent_week","date"],
+       ["date_fetched","date"],
        ["timestamp","timestamp"]
       ],
       "primary_key":"(state_code, county, timestamp)",
@@ -86,6 +89,7 @@
     { "schema": [
        ["zipcode","int4"],
        ["most_recent_week","date"],
+       ["date_fetched","date"],
        ["timestamp","timestamp"]
       ],
       "primary_key":"(zipcode, timestamp)",
