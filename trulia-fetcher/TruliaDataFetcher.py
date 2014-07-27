@@ -80,12 +80,47 @@ class TruliaDataFetcher:
             where_str += k + " = '" + str(obj_key_dict[k]) + "' and "
         where_str = where_str[:-4]
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, table_str, "date_fetched", where_str)
-        if len(res) == 0:
+        if res is None or len(res) == 0:
             latest_ac_date = "2000-01-01"
         else:
             latest_ac_date = datetime.datetime.strftime(res[0][0], '%Y-%m-%d')
 
         return latest_ac_date
+
+
+    def load_all_states_from_xml_archive(self):
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        for state_code_tuple in list(res):
+            state_code = state_code_tuple[0]
+            self.read_already_fetched_files("ST",{"state_code":state_code})
+
+
+    def load_all_zipcodes_from_xml_archive(self):
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_zipcode", "zipcode")
+        for zipcode_tuple in list(res):
+            zipcode = state_code_tuple[0]
+            zipcode = str(100000 + zipcode)[1:] 
+            self.read_already_fetched_files("ZP",{"zipcode":zipcode})
+
+
+    def load_all_cities_from_xml_archive(self):
+        state_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        for state_code_tuple in list(state_tuples):
+            state_code = state_code_tuple[0]
+            city_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_city", "city", "where state_code = '" + state_code + "'")
+            for city_tuple in list(city_tuples):
+                city = city_tuple[0]
+                self.read_already_fetched_files("CT",{"state_code":state_code, "city":city})
+
+
+    def load_all_counties_from_xml_archive(self):
+        state_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
+        for state_code_tuple in list(state_tuples):
+            state_code = state_code_tuple[0]
+            county_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_county", "county", "where state_code = '" + state_code + "'")
+            for county_tuple in list(county_tuples):
+                county = county_tuple[0]
+                self.read_already_fetched_files("CT",{"state_code":state_code, "county":county})
 
 
     def fetch_all_states_data(self):
@@ -97,38 +132,6 @@ class TruliaDataFetcher:
             fetched = self.fetch_state(state_code)
             if fetched: 
                 time.sleep(2.0/len(self.apikeys)) # trulia api restriction
-
-
-    def fetch_state(self, state_code):
-
-        # check if xml files exist about this topic and read that in
-        self.read_already_fetched_files("ST",{"state_code":state_code})
-
-        latest_rx_date = self.get_latest_api_call_date("state",{"state_code":state_code})
-        now_date = TruliaDataFetcher.get_current_date()
-
-        print "fetching state data about", state_code, 
-        if now_date == latest_rx_date:
-            print "already have logs fetched today"
-            return False # Notify caller that we did not hit Trulia's API
-
-        print "Calling API from", latest_rx_date, "to", now_date
-        
-        url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
-
-        self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
-        metadata_key_list = ["state_code = '" + state_code + "'"]
-        metadata_table = "data_state"
-
-        text = self.fetch_executor(url_str)
-        if text is None:
-            return False
-        dest_dir = self.data_dir + '/state/'+ state_code + '/' + now_date + '/'
-        file_name = state_code + '.xml'
-        self.save_xml_file(text, dest_dir, file_name)
-        json_doc = self.parse_executor(DataParser.parse_get_state_stats_resp, text)
-        self.write_executor(json_doc, metadata_table, metadata_key_list)
-        return True
 
 
     def fetch_all_cities_all_states_data(self):
@@ -148,38 +151,7 @@ class TruliaDataFetcher:
             fetched = self.fetch_city(city, state_code)
             if fetched:
                 time.sleep(2.0/len(self.apikeys)) # trulia api restriction 
-            
 
-    def fetch_city(self, city, state_code):
-
-        latest_rx_date = self.get_latest_list_stat_date("city",{"state_code":state_code,"city":city})
-        now_date = TruliaDataFetcher.get_current_date()
-
-        print "fetching city data about", city, state_code, "from", latest_rx_date, "to", now_date
-        city_spaced = '%20'.join(city.split(' '))
-
-        if now_date == latest_rx_date:
-            print "already have fetched today"
-            # Notify caller that we did not hit Trulia's API
-            return False
-        print ""
-
-        url_str = self.url + "library=" + self.stats_library + "&function=getCityStats&city=" + city_spaced + "&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
-
-        self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
-        metadata_table = "data_city"
-        metadata_key_list = ["state_code = '" + state_code + "'", "city ='" + city + "'"]
-
-        text = self.fetch_executor(url_str)
-        if text is None:
-            return False
-        city_ = '_'.join(city.split(' '))
-        dest_dir = self.data_dir + '/city/'+ state_code + '/' + city_ + '/' + now_date + '/'
-        file_name = city_ + '.xml'
-        self.save_xml_file(text, dest_dir, file_name)
-        json_doc = self.parse_executor(DataParser.parse_get_city_stats_resp, text)
-        self.write_executor(json_doc, metadata_table, metadata_key_list)
-        return True
 
     def fetch_all_counties_all_states_data(self):
 
@@ -198,41 +170,6 @@ class TruliaDataFetcher:
             fetched = self.fetch_county(county, state_code)
             if fetched:
                 time.sleep(2.0/len(self.apikeys)) # trulia api restriction 
-            
-
-    def fetch_county(self, county, state_code):
-
-        # check if xml files exist about this topic and read that in
-        self.read_already_fetched_files("CO",{"state_code":state_code,"county":county})
-
-        latest_rx_date = self.get_latest_api_call_date("county",{"state_code":state_code,"county":county})
-        now_date = TruliaDataFetcher.get_current_date()
-
-        print "fetching county data about", county, state_code,
-
-        if now_date == latest_rx_date:
-            print "already have logs fetched today"
-            return False # Notify caller that we did not hit Trulia's API 
-
-        print "Calling API from", latest_rx_date, "to", now_date
-
-        county_spaced = '%20'.join(county.split(' '))
-        url_str = self.url + "library=" + self.stats_library + "&function=getCountyStats&county=" + county_spaced + "&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
-
-        self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
-        metadata_table = "data_county"
-        metadata_key_list = ["state_code = '" + state_code + "'", "county ='" + county + "'"]
-
-        text = self.fetch_executor(url_str)
-        if text is None:
-            return False
-        county_ = '_'.join(county.split(' '))
-        dest_dir = self.data_dir + '/county/'+ state_code + '/' + county_ + '/' + now_date + '/'
-        file_name = county_ + '.xml'
-        self.save_xml_file(text, dest_dir, file_name)
-        json_doc = self.parse_executor(DataParser.parse_get_county_stats_resp, text)
-        self.write_executor(json_doc, metadata_table, metadata_key_list)
-        return True
 
 
     def fetch_all_zipcodes_data(self): 
@@ -246,12 +183,128 @@ class TruliaDataFetcher:
             time.sleep(2.0/len(self.apikeys)) # trulia api restriction 
 
 
+    def fetch_state(self, state_code):
+
+        # check if xml files exist about this topic and read that in
+        self.read_already_fetched_files("ST",{"state_code":state_code})
+        latest_api_call_date = self.get_latest_api_call_date("state",{"state_code":state_code})
+        now_date = TruliaDataFetcher.get_current_date()
+
+        print "loading data about state:", state_code
+        if now_date == latest_api_call_date:
+            print "  already have logs fetched today"
+            return False # Notify caller that we did not hit Trulia's API
+
+        latest_rx_date = self.get_latest_list_stat_date("state",{"state_code":state_code})
+        print "Calling API from", latest_rx_date, "to", now_date
+        url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
+
+        self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
+        metadata_key_list = ["state_code = '" + state_code + "'"]
+        metadata_table = "data_state"
+
+        text = self.fetch_executor(url_str)
+        if text is None:
+            return False
+        dest_dir = self.data_dir + '/state/'+ state_code + '/' + now_date + '/'
+        file_name = state_code + '.xml'
+        self.save_xml_file(text, dest_dir, file_name)
+
+        json_doc = self.parse_executor(DataParser.parse_get_state_stats_resp, text)
+        self.write_executor(json_doc, metadata_table, metadata_key_list)
+        return True
+
+
+    def fetch_city(self, city, state_code):
+
+        # check if xml files exist about this topic and read that in
+        self.read_already_fetched_files("CT",{"state_code":state_code,"city":city})
+
+        latest_api_call_date = self.get_latest_api_call_date("city",{"state_code":state_code,"city":city})
+        now_date = TruliaDataFetcher.get_current_date()
+
+        print "loading data about city:", city, ",", state_code
+        if now_date == latest_api_call_date:
+            print "already have logs fetched today"
+            return False # Notify caller that we did not hit Trulia's API 
+
+        latest_rx_date = self.get_latest_list_stat_date("city",{"state_code":state_code,"city":city})
+        print "Calling API from", latest_rx_date, "to", now_date, "about", city, state_code, 
+        city_spaced = '%20'.join(city.split(' '))
+
+        url_str = self.url + "library=" + self.stats_library + "&function=getCityStats&city=" + city_spaced + "&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
+
+        self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
+        metadata_table = "data_city"
+        metadata_key_list = ["state_code = '" + state_code + "'", "city ='" + city + "'"]
+
+        text = self.fetch_executor(url_str)
+        if text is None:
+            return False
+        city_ = '_'.join(city.split(' '))
+        dest_dir = self.data_dir + '/city/'+ state_code + '/' + city_ + '/' + now_date + '/'
+        file_name = city_ + '.xml'
+        self.save_xml_file(text, dest_dir, file_name)
+
+        json_doc = self.parse_executor(DataParser.parse_get_city_stats_resp, text)
+        self.write_executor(json_doc, metadata_table, metadata_key_list)
+        return True
+            
+
+    def fetch_county(self, county, state_code):
+
+        # check if xml files exist about this topic and read that in
+        self.read_already_fetched_files("CO",{"state_code":state_code,"county":county})
+
+        last_api_call_date = self.get_latest_api_call_date("county",{"state_code":state_code,"county":county})
+        now_date = TruliaDataFetcher.get_current_date()
+
+        print "fetching data about county:", county, ",", state_code,
+        if now_date == last_api_call_date:
+            print "already have logs fetched today"
+            return False # Notify caller that we did not hit Trulia's API 
+
+        latest_rx_date = self.get_latest_list_stat_date("city",{"state_code":state_code,"county":county})
+        print "Calling API from", latest_rx_date, "to", now_date
+        county_spaced = '%20'.join(county.split(' '))
+
+        url_str = self.url + "library=" + self.stats_library + "&function=getCountyStats&county=" + county_spaced + "&state=" + state_code + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
+
+        self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
+        metadata_table = "data_county"
+        metadata_key_list = ["state_code = '" + state_code + "'", "county ='" + county + "'"]
+
+        text = self.fetch_executor(url_str)
+        if text is None:
+            return False
+        county_ = '_'.join(county.split(' '))
+        dest_dir = self.data_dir + '/county/'+ state_code + '/' + county_ + '/' + now_date + '/'
+        file_name = county_ + '.xml'
+        self.save_xml_file(text, dest_dir, file_name)
+
+        json_doc = self.parse_executor(DataParser.parse_get_county_stats_resp, text)
+        self.write_executor(json_doc, metadata_table, metadata_key_list)
+        return True
+
+
     def fetch_zipcode_data(self, zipcode):
 
-        latest_rx_date = self.get_latest_list_stat_date("zipcode",{"zipcode":zipcode})
+        # check if xml files exist about this topic and read that in
+        self.read_already_fetched_files("ZP",{"zipcode":state_code})
+
+        last_api_call_date = self.get_latest_api_call_date("zipcode",{"zipcode":zipcode})
         now_date = TruliaDataFetcher.get_current_date()
-        print "fetching zipcode data about", zipcode, "from", latest_rx_date, "to", now_date
+
+        print "fetching data about zipcode:", zipcode
+        if now_date == last_api_call_date:
+            print "already have logs fetched today"
+            return False # Notify caller that we did not hit Trulia's API 
+
+        latest_rx_date = self.get_latest_list_stat_date("zipcode",{"zipcode":zipcode})
+        print "Calling API from", latest_rx_date, "to", now_date
+
         url_str = self.url + "library=" + self.stats_library + "&function=getZipCodeStats&zipCode=" + zipcode + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
+
         self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
         metadata_table = "data_zipcode"
         metadata_key_list = ["zipcode = " + zipcode ]
@@ -317,10 +370,21 @@ class TruliaDataFetcher:
             for file_ in file_list:
                 with open(file_, 'r') as stream:
                     text = stream.read()
-                    json_doc = self.parse_executor(TruliaDataFetcher.parse_get_state_stats_resp, text)
+                    json_doc = self.parse_executor(DataParser.parse_get_state_stats_resp, text)
                     json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                     print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
                     self.write_executor(json_doc, "data_state", ["state_code = '" + state_code + "'"])
+
+        elif geo_type == "ZP":
+            zipcode = geo_dict['zipcode']
+            file_list = glob.glob(self.data_dir + '/zipcode/'+ zipcode + '/*/' + zipcode + '.xml')
+            for file_ in file_list:
+                with open(file_, 'r') as stream:
+                    text = stream.read()
+                    json_doc = self.parse_executor(DataParser.parse_get_zipcode_stats_resp, text)
+                    json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
+                    print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
+                    self.write_executor(json_doc, "data_zipcode", ["zipcode = '" + zipcode + "'"])
 
         elif geo_type == "CO":
             state_code = geo_dict['state_code']
@@ -330,11 +394,25 @@ class TruliaDataFetcher:
             for file_ in file_list:
                 with open(file_, 'r') as stream:
                     text = stream.read()
-                    json_doc = self.parse_executor(TruliaDataFetcher.parse_get_county_stats_resp, text)
+                    json_doc = self.parse_executor(DataParser.parse_get_county_stats_resp, text)
                     json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                     print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
 
                     self.write_executor(json_doc, "data_county", ["state_code = '" + state_code + "'","county = '" + county + "'"])
+                                        
+        elif geo_type == "CT":
+            state_code = geo_dict['state_code']
+            city = geo_dict['city']
+            city_ = '_'.join(city.split(' '))
+            file_list = glob.glob(self.data_dir + '/city/' + state_code + '/' + city_ + '/*/' + city_ + '.xml')
+            for file_ in file_list:
+                with open(file_, 'r') as stream:
+                    text = stream.read()
+                    json_doc = self.parse_executor(DataParser.parse_get_city_stats_resp, text)
+                    json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
+                    print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
+
+                    self.write_executor(json_doc, "data_city", ["state_code = '" + state_code + "'","city = '" + city + "'"])
                     
                     
 
@@ -371,196 +449,18 @@ class TruliaDataFetcher:
         return True
 
 
-    # Static parsing methods
-
-    @staticmethod
-    def parse_get_state_stats_resp(text):
-       
-        head_dom = minidom.parseString(text)
-        dom_list = head_dom.getElementsByTagName('listingStat')
-        state_code = head_dom.getElementsByTagName('stateCode')[0].firstChild.nodeValue
-
-        # No key, do not log
-        if len(state_code) != 2:
-            return
-        else:
-            stats_doc, most_recent_week = TruliaDataFetcher.parse_week_listings(dom_list)
-            head_doc = {}
-            head_doc['doc_type'] = 'state_record'
-            head_doc['state_code'] = state_code
-            head_doc['stats'] = stats_doc
-            head_doc['most_recent_week'] = most_recent_week
-            return head_doc
-
-
-    @staticmethod
-    def parse_get_city_stats_resp(text):
-       
-        head_dom = minidom.parseString(text)
-        dom_list = head_dom.getElementsByTagName('listingStat')
-        state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
-        city = head_dom.getElementsByTagName('city')[0].firstChild.nodeValue
-
-        # No key, do not log
-        if len(state_code) != 2:
-            return
-        else:
-            stats_doc, most_recent_week = TruliaDataFetcher.parse_week_listings(dom_list)
-            head_doc = {}
-            head_doc['doc_type'] = 'city_record'
-            head_doc['state_code'] = state_code
-            head_doc['city'] = city
-            head_doc['stats'] = stats_doc
-            head_doc['most_recent_week'] = most_recent_week
-            return head_doc
-
-
-    @staticmethod
-    def parse_get_county_stats_resp(text):
-       
-        head_dom = minidom.parseString(text)
-        dom_list = head_dom.getElementsByTagName('listingStat')
-        state_code = head_dom.getElementsByTagName('state')[0].firstChild.nodeValue
-        county = head_dom.getElementsByTagName('county')[0].firstChild.nodeValue
-
-        # No key, do not log
-        if len(state_code) != 2 and len(county) > 0:
-            return
-        else:
-            stats_doc, most_recent_week = TruliaDataFetcher.parse_week_listings(dom_list)
-            head_doc = {}
-            head_doc['doc_type'] = 'county_record'
-            head_doc['state_code'] = state_code
-            head_doc['county'] = county
-            head_doc['stats'] = stats_doc
-            head_doc['most_recent_week'] = most_recent_week
-            return head_doc
-
-
-    @staticmethod
-    def parse_get_zipcode_stats_resp(text):
-            
-        head_dom = minidom.parseString(text)
-        dom_list = head_dom.getElementsByTagName('listingStat')
-        zipcode = head_dom.getElementsByTagName('zipCode')[0].firstChild.nodeValue
-
-        # No key, do not log
-        try:
-            int(zipcode)
-        except:
-            return
-
-        if len(zipcode) != 5:
-            return
-        else:
-            stats_doc, most_recent_week = TruliaDataFetcher.parse_week_listings(dom_list)
-            head_doc = {}
-            head_doc['doc_type'] = 'zipcode_record'
-            head_doc['zipcode'] = zipcode
-            head_doc['stats'] = stats_doc
-            head_doc['most_recent_week'] = most_recent_week
-            return head_doc
-
-
-    @staticmethod
-    def parse_week_listings(dom_list):
-
-        # semi-structured json document
-        json_doc = {}
-        most_recent_week = datetime.datetime.strptime('2000-01-01', '%Y-%m-%d')
-        for dom_i in dom_list:
-
-            week_ending_date_str = dom_i.getElementsByTagName('weekEndingDate')[0].firstChild.nodeValue
-
-            week_ending_datetime = datetime.datetime.strptime(week_ending_date_str, '%Y-%m-%d') 
-            if week_ending_datetime > most_recent_week:
-                most_recent_week = week_ending_datetime
-
-            week_list = dom_i.getElementsByTagName('listingPrice')
-
-            for week_dom_i in week_list:
-                k_bed_list = week_dom_i.getElementsByTagName('subcategory')
-                for k_bed_i in k_bed_list:
-                    
-                    prop_list = k_bed_i.getElementsByTagName('type')[0].firstChild.nodeValue
-
-                    # checking k_bed to be either a positive int
-                    # don't record aggregated 'All Properties' stats
-                    k_bed = prop_list.split(' ')[0]
-
-                    if (TruliaDataFetcher.is_str_positive_int(k_bed)):
-                        try:
-                            sub_doc = {}
-                            sub_doc['week_ending_date'] = str(week_ending_date_str)
-                            sub_doc['num_beds'] = int(k_bed)
-
-                            # carefully parsing of sub xml dom
-                            listing_stat_dict = TruliaDataFetcher.parse_listing_stat(k_bed_i)
-
-                            # merge keys
-                            sub_doc = dict(listing_stat_dict.items() + listing_stat_dict.items())
-
-                            # record aggregation
-                            val = {'a': sub_doc['avg_list'], 'n' : sub_doc['num_list'] }
-
-                            if k_bed not in json_doc:
-                                json_doc[k_bed] = {}
-                            json_doc[k_bed][week_ending_date_str] = val
-                        except:
-                            continue
-
-        return json_doc, most_recent_week.strftime('%Y-%m-%d')
-
-
-    @staticmethod
-    def parse_listing_stat(list_stat_dom):
-
-        stat_dict = {}
-
-        try:
-            num_list = list_stat_dom.getElementsByTagName('numberOfProperties')[0].firstChild.nodeValue
-        except:
-            pass
-
-        try:
-            avg_list = list_stat_dom.getElementsByTagName('averageListingPrice')[0].firstChild.nodeValue
-        except:
-            pass
-
-        try:
-            med_list = list_stat_dom.getElementsByTagName('medianListingPrice')[0].firstChild.nodeValue
-        except:
-            pass
-
-        stat_dict['ts'] = int(time.time()*1000)                           
-
-        if TruliaDataFetcher.is_str_positive_int(num_list):
-            stat_dict['num_list'] = int(num_list)
-
-        try:
-            stat_dict['avg_list'] = int(avg_list)
-        except:
-            pass
-
-        try:
-            stat_dict['med_list'] = int(med_list)
-        except:
-            pass
-
-        return stat_dict
-
 
 # program
 if __name__ == "__main__":
 
-    dm = DatabaseManager.DatabaseManager('../conf/')
-    dm.reset_data_metadata_tables()
+    #dm = DatabaseManager.DatabaseManager('../conf/')
+    #dm.reset_data_metadata_tables()
 
     tdf = TruliaDataFetcher('../conf/')
 
     # Stable functions, but single threaded
     #tdf.fetch_all_states_data()
-    tdf.fetch_all_counties_all_states_data()
+    #tdf.fetch_all_counties_all_states_data()
     #tdf.fetch_all_cities_all_states_data()
     #tdf.fetch_all_zipcodes_data()
     
