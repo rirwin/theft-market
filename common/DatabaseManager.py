@@ -167,16 +167,16 @@ class DatabaseManager:
     def drop_table_static(cursor, table_str):
         cursor.execute("drop table if exists " + table_str)
 
-
-
  
 def main():
     # Full path (incl. file name) to database credentials
     config_path = "../conf/"
     dm = DatabaseManager(config_path)
-    dm.reset_data_metadata_tables()
+    
     dm.reset_all_tables()
 
+    # resets tables that start with "data_"
+    # dm.reset_data_metadata_tables()
 
 if '__main__' == __name__:
     main()
