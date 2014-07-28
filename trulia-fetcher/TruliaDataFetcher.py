@@ -33,10 +33,6 @@ class TruliaDataFetcher:
         
         self.init_fluent()
 
-        # lock for threads to use to add to fetch_metadata
-        self.lock = threading.Lock()
-        self.fetch_metadata = list()
-
 
     def load_trulia_params(self, trulia_conf):
         self.stats_library = trulia_conf.stats_library
