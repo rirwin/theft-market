@@ -1,6 +1,5 @@
 import urllib2 
 import time
-import threading
 import sys
 import os
 import Queue
@@ -49,36 +48,6 @@ class TruliaDataFetcher:
 
     def init_fluent(self):
         sender.setup('hdfs')
-
-
-    def get_latest_list_stat_date(self, obj_type, obj_key_dict):
-        table_str = "data_" + obj_type
-        where_str = ""
-        for k in obj_key_dict:
-            where_str += k + " = '" + str(obj_key_dict[k]) + "' and "
-        where_str = where_str[:-4]
-        res = self.db_mgr.simple_select_query(self.db_mgr.conn, table_str, "most_recent_week", where_str)
-        if len(res) == 0:
-            latest_ls_date = "2000-01-01"
-        else:
-            latest_ls_date = str(res[0][0])
-        return latest_ls_date
-
-
-
-    def get_latest_api_call_date(self, obj_type, obj_key_dict):
-        table_str = "data_" + obj_type
-        where_str = ""
-        for k in obj_key_dict:
-            where_str += k + " = '" + str(obj_key_dict[k]) + "' and "
-        where_str = where_str[:-4]
-        res = self.db_mgr.simple_select_query(self.db_mgr.conn, table_str, "date_fetched", where_str)
-        if res is None or len(res) == 0:
-            latest_ac_date = "2000-01-01"
-        else:
-            latest_ac_date = datetime.datetime.strftime(res[0][0], '%Y-%m-%d')
-
-        return latest_ac_date
 
 
     def load_all_states_from_xml_archive(self):
@@ -207,6 +176,35 @@ class TruliaDataFetcher:
         json_doc = self.parse_executor(parser_func, text)
         self.write_executor(json_doc, geo_type, geo_dict)
         return True
+
+
+    def get_latest_list_stat_date(self, obj_type, obj_key_dict):
+        table_str = "data_" + obj_type
+        where_str = ""
+        for k in obj_key_dict:
+            where_str += k + " = '" + str(obj_key_dict[k]) + "' and "
+        where_str = where_str[:-4]
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, table_str, "most_recent_week", where_str)
+        if len(res) == 0:
+            latest_ls_date = "2000-01-01"
+        else:
+            latest_ls_date = str(res[0][0])
+        return latest_ls_date
+
+
+    def get_latest_api_call_date(self, obj_type, obj_key_dict):
+        table_str = "data_" + obj_type
+        where_str = ""
+        for k in obj_key_dict:
+            where_str += k + " = '" + str(obj_key_dict[k]) + "' and "
+        where_str = where_str[:-4]
+        res = self.db_mgr.simple_select_query(self.db_mgr.conn, table_str, "date_fetched", where_str)
+        if res is None or len(res) == 0:
+            latest_ac_date = "2000-01-01"
+        else:
+            latest_ac_date = datetime.datetime.strftime(res[0][0], '%Y-%m-%d')
+
+        return latest_ac_date
 
 
     def form_url(self, geo_type, geo_dict, latest_rx_date, now_date):
