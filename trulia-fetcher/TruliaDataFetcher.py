@@ -258,7 +258,12 @@ class TruliaDataFetcher:
     def write_executor(self, json_doc, geo_type, geo_dict):
 
         metadata_table = "data_" + geo_type
-        metadata_key_list = ["'" + k + "' = '" + geo_dict[k] + "'" for k in geo_dict]
+        if geo_type == "county" or geo_type == "city":
+            metadata_key_list = [ k + " = '" + geo_dict[k] + "'" for k in geo_dict]
+        elif geo_type == "state":
+            metadata_key_list = ["state_code = '" + geo_dict['state_code'] + "'"]
+        elif geo_type == "zipcode":
+            metadata_key_list = ["zipcode = '" + geo_dict['zipcode'] + "'"]
 
         # send to HDFS
         # self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)        
@@ -296,6 +301,7 @@ class TruliaDataFetcher:
         
         return None
 
+
     # TODO refactor this function
     def read_already_fetched_files(self, geo_type, geo_dict):
 
@@ -313,7 +319,7 @@ class TruliaDataFetcher:
                         json_doc = self.parse_executor(DataParser.parse_get_state_stats_resp, text)
                         json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                         print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
-                        self.write_executor(json_doc, "data_state", ["state_code = '" + state_code + "'"])
+                        self.write_executor(json_doc, "state", geo_dict)
 
         elif geo_type == "ZP":
             zipcode = geo_dict['zipcode']
@@ -328,7 +334,7 @@ class TruliaDataFetcher:
                         json_doc = self.parse_executor(DataParser.parse_get_zipcode_stats_resp, text)
                         json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                         print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
-                        self.write_executor(json_doc, "data_zipcode", ["zipcode = '" + zipcode + "'"])
+                        self.write_executor(json_doc, "zipcode", geo_dict)
 
         elif geo_type == "CO":
             state_code = geo_dict['state_code']
@@ -346,7 +352,7 @@ class TruliaDataFetcher:
                         json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                         print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
 
-                        self.write_executor(json_doc, "data_county", ["state_code = '" + state_code + "'","county = '" + county + "'"])
+                        self.write_executor(json_doc, "county", geo_dict)
                                         
         elif geo_type == "CT":
             state_code = geo_dict['state_code']
@@ -364,7 +370,7 @@ class TruliaDataFetcher:
                         json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                         print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
 
-                        self.write_executor(json_doc, "data_city", ["state_code = '" + state_code + "'","city = '" + city + "'"])
+                        self.write_executor(json_doc, "city", geo_dict)
                     
                     
 
