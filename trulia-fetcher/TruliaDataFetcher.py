@@ -215,17 +215,22 @@ class TruliaDataFetcher:
 
     def form_url(self, geo_type, geo_dict, latest_rx_date, now_date):
 
+        url_str = self.url + "library=" + self.stats_library + "&function="
+
         if geo_type == 'state':
-            url_str = self.url + "library=" + self.stats_library + "&function=getStateStats&state=" + geo_dict['state_code'] + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
+            url_str += "getStateStats&state=" + geo_dict['state_code']
+
         if geo_type == 'zipcode':
-            url_str = self.url + "library=" + self.stats_library + "&function=getZipCodeStats&zipCode=" + geo_dict['zipcode'] + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
+            url_str += "getZipCodeStats&zipCode=" + geo_dict['zipcode']
+
         elif geo_type == 'county':
             county_spaced = '%20'.join(geo_dict['county'].split(' '))
-            url_str = self.url + "library=" + self.stats_library + "&function=getCountyStats&county=" + county_spaced + "&state=" + geo_dict['state_code'] + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
+            url_str += "getCountyStats&county=" + county_spaced + "&state=" + geo_dict['state_code'] 
         elif geo_type == 'city':
             city_spaced = '%20'.join(geo_dict['city'].split(' '))
-            url_str = self.url + "library=" + self.stats_library + "&function=getCityStats&city=" + city_spaced + "&state=" + geo_dict['state_code'] + "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
+            url_str += "getCityStats&city=" + city_spaced + "&state=" + geo_dict['state_code']
 
+        url_str += "&startDate=" + latest_rx_date + "&endDate=" + now_date + "&statType=listings" + "&apikey=" + self.apikeys[self.curr_key_idx]
         self.curr_key_idx = (self.curr_key_idx + 1) % len(self.apikeys)
 
         return url_str
@@ -380,9 +385,6 @@ class TruliaDataFetcher:
             filename = geo_spaced + '.xml'
 
         dest_dir += now_date
-
-        print dest_dir
-        print filename
 
         try:
             os.makedirs(dest_dir)
