@@ -121,11 +121,10 @@ class TruliaDataFetcher:
         for state_code_tuple in list(state_tuples):
             state_code = state_code_tuple[0]
             county_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_county", "county", "state_code = '" + state_code + "'")
-            print county_tuples
             for county_tuple in list(county_tuples):
                 county = county_tuple[0]
                 print "loading county from archive:", county, ",", state_code 
-                self.read_already_fetched_files("CT",{"state_code":state_code, "county":county})
+                self.read_already_fetched_files("CO",{"state_code":state_code, "county":county})
 
 
     def fetch_all_states_data(self):
@@ -373,22 +372,30 @@ class TruliaDataFetcher:
             file_list = glob.glob(self.data_dir + '/state/'+ state_code + '/*/' + state_code + '.xml')
             for file_ in file_list:
                 with open(file_, 'r') as stream:
-                    text = stream.read()
-                    json_doc = self.parse_executor(DataParser.parse_get_state_stats_resp, text)
-                    json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
-                    print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
-                    self.write_executor(json_doc, "data_state", ["state_code = '" + state_code + "'"])
+                    # check if already read in
+                    date_fetched = file_.split('/')[-2]
+                    date_fetched_in_DB = self.get_latest_api_call_date("state",{"state_code":state_code})
+                    if date_fetched_in_DB != date_fetched:
+                        text = stream.read()
+                        json_doc = self.parse_executor(DataParser.parse_get_state_stats_resp, text)
+                        json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
+                        print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
+                        self.write_executor(json_doc, "data_state", ["state_code = '" + state_code + "'"])
 
         elif geo_type == "ZP":
             zipcode = geo_dict['zipcode']
             file_list = glob.glob(self.data_dir + '/zipcode/'+ zipcode + '/*/' + zipcode + '.xml')
             for file_ in file_list:
                 with open(file_, 'r') as stream:
-                    text = stream.read()
-                    json_doc = self.parse_executor(DataParser.parse_get_zipcode_stats_resp, text)
-                    json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
-                    print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
-                    self.write_executor(json_doc, "data_zipcode", ["zipcode = '" + zipcode + "'"])
+                    # check if already read in
+                    date_fetched = file_.split('/')[-2]
+                    date_fetched_in_DB = self.get_latest_api_call_date("zipcode",{"zipcode":zipcode})
+                    if date_fetched_in_DB != date_fetched:
+                        text = stream.read()
+                        json_doc = self.parse_executor(DataParser.parse_get_zipcode_stats_resp, text)
+                        json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
+                        print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
+                        self.write_executor(json_doc, "data_zipcode", ["zipcode = '" + zipcode + "'"])
 
         elif geo_type == "CO":
             state_code = geo_dict['state_code']
@@ -397,12 +404,16 @@ class TruliaDataFetcher:
             file_list = glob.glob(self.data_dir + '/county/' + state_code + '/' + county_ + '/*/' + county_ + '.xml')
             for file_ in file_list:
                 with open(file_, 'r') as stream:
-                    text = stream.read()
-                    json_doc = self.parse_executor(DataParser.parse_get_county_stats_resp, text)
-                    json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
-                    print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
+                    # check if already read in
+                    date_fetched = file_.split('/')[-2]
+                    date_fetched_in_DB = self.get_latest_api_call_date("county",{"state_code":state_code,"county":county})
+                    if date_fetched_in_DB != date_fetched:
+                        text = stream.read()
+                        json_doc = self.parse_executor(DataParser.parse_get_county_stats_resp, text)
+                        json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
+                        print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
 
-                    self.write_executor(json_doc, "data_county", ["state_code = '" + state_code + "'","county = '" + county + "'"])
+                        self.write_executor(json_doc, "data_county", ["state_code = '" + state_code + "'","county = '" + county + "'"])
                                         
         elif geo_type == "CT":
             state_code = geo_dict['state_code']
@@ -411,12 +422,16 @@ class TruliaDataFetcher:
             file_list = glob.glob(self.data_dir + '/city/' + state_code + '/' + city_ + '/*/' + city_ + '.xml')
             for file_ in file_list:
                 with open(file_, 'r') as stream:
-                    text = stream.read()
-                    json_doc = self.parse_executor(DataParser.parse_get_city_stats_resp, text)
-                    json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
-                    print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
+                    # check if already read in
+                    date_fetched = file_.split('/')[-2]
+                    date_fetched_in_DB = self.get_latest_api_call_date("city",{"state_code":state_code,"city":city})
+                    if date_fetched_in_DB != date_fetched:
+                        text = stream.read()
+                        json_doc = self.parse_executor(DataParser.parse_get_city_stats_resp, text)
+                        json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
+                        print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
 
-                    self.write_executor(json_doc, "data_city", ["state_code = '" + state_code + "'","city = '" + city + "'"])
+                        self.write_executor(json_doc, "data_city", ["state_code = '" + state_code + "'","city = '" + city + "'"])
                     
                     
 
@@ -464,8 +479,8 @@ if __name__ == "__main__":
 
     tdf.load_all_states_from_xml_archive()
     tdf.load_all_counties_from_xml_archive()
-    tdf.load_all_cities_from_xml_archive()
-    tdf.load_all_zipcodes_from_xml_archive()
+    #tdf.load_all_cities_from_xml_archive()
+    #tdf.load_all_zipcodes_from_xml_archive()
 
     # Stable functions, but single threaded
     #tdf.fetch_all_states_data()
