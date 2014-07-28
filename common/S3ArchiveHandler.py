@@ -38,6 +38,7 @@ def main():
 
     s3ah = S3ArchiveHandler('../conf/')
     s3ah.get_info_sql()
+    s3ah.get_xml_archive()
 
 
 if '__main__' == __name__:
