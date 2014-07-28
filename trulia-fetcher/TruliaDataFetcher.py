@@ -251,6 +251,9 @@ class TruliaDataFetcher:
 
     def write_executor(self, json_doc, geo_type, geo_dict):
 
+        if json_doc is None:
+            return
+
         metadata_table = "data_" + geo_type
         if geo_type == "county" or geo_type == "city":
             metadata_key_list = [ k + " = '" + geo_dict[k] + "'" for k in geo_dict]
@@ -274,8 +277,11 @@ class TruliaDataFetcher:
     # short function, may expand to threads or generator design pattern
     def parse_executor(self, parse_func, text):
         json_doc = parse_func(text)
-        json_doc['date_fetched'] = datetime.datetime.now().strftime('%Y-%m-%d')
-        return json_doc
+        if json_doc is not None:
+            json_doc['date_fetched'] = datetime.datetime.now().strftime('%Y-%m-%d')
+            return json_doc
+        else:
+            return None
         
 
     def fetch_executor(self, url_str):
@@ -311,6 +317,9 @@ class TruliaDataFetcher:
                     if date_fetched_in_DB != date_fetched:
                         text = stream.read()
                         json_doc = self.parse_executor(DataParser.parse_get_state_stats_resp, text)
+                        if json_doc is None: 
+                            return
+
                         json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                         print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
                         self.write_executor(json_doc, "state", geo_dict)
@@ -326,6 +335,9 @@ class TruliaDataFetcher:
                     if date_fetched_in_DB != date_fetched:
                         text = stream.read()
                         json_doc = self.parse_executor(DataParser.parse_get_zipcode_stats_resp, text)
+                        if json_doc is None: 
+                            return
+
                         json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                         print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
                         self.write_executor(json_doc, "zipcode", geo_dict)
@@ -343,6 +355,9 @@ class TruliaDataFetcher:
                     if date_fetched_in_DB != date_fetched:
                         text = stream.read()
                         json_doc = self.parse_executor(DataParser.parse_get_county_stats_resp, text)
+                        if json_doc is None: 
+                            return
+
                         json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                         print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
 
@@ -361,6 +376,9 @@ class TruliaDataFetcher:
                     if date_fetched_in_DB != date_fetched:
                         text = stream.read()
                         json_doc = self.parse_executor(DataParser.parse_get_city_stats_resp, text)
+                        if json_doc is None: 
+                            return
+
                         json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                         print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
 
@@ -423,9 +441,9 @@ def main():
 
     tdf = TruliaDataFetcher('../conf/')
 
-    tdf.load_all_states_from_xml_archive()
-    tdf.load_all_counties_from_xml_archive()
-    tdf.load_all_cities_from_xml_archive()
+    #tdf.load_all_states_from_xml_archive()
+    #tdf.load_all_counties_from_xml_archive()
+    #tdf.load_all_cities_from_xml_archive()
     tdf.load_all_zipcodes_from_xml_archive()
 
     #tdf.fetch_all_states_data()
