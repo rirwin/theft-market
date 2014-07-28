@@ -179,7 +179,7 @@ class TruliaDataFetcher:
         for zipcode_tuple in list(res):
             zipcode = zipcode_tuple[0]
             zipcode = str(100000 + zipcode)[1:] 
-            self.fetch_zipcode_data(zipcode)
+            self.fetch_zipcode(zipcode)
             time.sleep(2.0/len(self.apikeys)) # trulia api restriction 
 
 
@@ -287,7 +287,7 @@ class TruliaDataFetcher:
         return True
 
 
-    def fetch_zipcode_data(self, zipcode):
+    def fetch_zipcode(self, zipcode):
 
         # check if xml files exist about this topic and read that in
         self.read_already_fetched_files("ZP",{"zipcode":state_code})
@@ -322,8 +322,7 @@ class TruliaDataFetcher:
 
 
     def write_executor(self, json_doc, metadata_table, metadata_key_list):
-        # send to archive store
-        # TODO send to S3
+
         # send to HDFS
         #self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)
         
@@ -458,13 +457,17 @@ if __name__ == "__main__":
 
     tdf = TruliaDataFetcher('../conf/')
 
+    tdf.load_all_states_from_xml_archive()
+    tdf.load_all_counties_from_xml_archive()
+    tdf.load_all_cities_from_xml_archive()
+    tdf.load_all_zipcodes_from_xml_archive()
+
     # Stable functions, but single threaded
     #tdf.fetch_all_states_data()
     #tdf.fetch_all_counties_all_states_data()
     #tdf.fetch_all_cities_all_states_data()
     #tdf.fetch_all_zipcodes_data()
     
-
     # not much faster
     #tdf.fetch_all_states_data_threaded()
     #tdf.fetch_all_states_data_queue_threaded()
