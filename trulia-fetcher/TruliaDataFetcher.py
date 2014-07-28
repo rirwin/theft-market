@@ -92,6 +92,7 @@ class TruliaDataFetcher:
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
         for state_code_tuple in list(res):
             state_code = state_code_tuple[0]
+            print "loading state from archive:",state_code
             self.read_already_fetched_files("ST",{"state_code":state_code})
 
 
@@ -99,7 +100,8 @@ class TruliaDataFetcher:
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_zipcode", "zipcode")
         for zipcode_tuple in list(res):
             zipcode = state_code_tuple[0]
-            zipcode = str(100000 + zipcode)[1:] 
+            zipcode = str(100000 + zipcode)[1:]
+            print "loading zipcode from archive:",zipcode 
             self.read_already_fetched_files("ZP",{"zipcode":zipcode})
 
 
@@ -107,9 +109,10 @@ class TruliaDataFetcher:
         state_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
         for state_code_tuple in list(state_tuples):
             state_code = state_code_tuple[0]
-            city_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_city", "city", "where state_code = '" + state_code + "'")
+            city_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_city", "city", "state_code = '" + state_code + "'")
             for city_tuple in list(city_tuples):
                 city = city_tuple[0]
+                print "loading city from archive:", city, ",", state_code 
                 self.read_already_fetched_files("CT",{"state_code":state_code, "city":city})
 
 
@@ -117,9 +120,11 @@ class TruliaDataFetcher:
         state_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_state", "state_code")
         for state_code_tuple in list(state_tuples):
             state_code = state_code_tuple[0]
-            county_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_county", "county", "where state_code = '" + state_code + "'")
+            county_tuples = self.db_mgr.simple_select_query(self.db_mgr.conn, "info_county", "county", "state_code = '" + state_code + "'")
+            print county_tuples
             for county_tuple in list(county_tuples):
                 county = county_tuple[0]
+                print "loading county from archive:", county, ",", state_code 
                 self.read_already_fetched_files("CT",{"state_code":state_code, "county":county})
 
 
