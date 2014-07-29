@@ -64,7 +64,13 @@ The XML city meta-data (i.e., the city name, GPS lat/lon) is parsed and put into
 
 #### HBase
 
-The XML is parsed and sent to HBase through HappyBase and the Thrift server.  There is a single column family, 'cf', for the listing data.  The 'cf' column family has its columns keyed by the date of the listing stats.  The stats about single row in HBase are aggregated together and sent to HBase in the [TruliaDataFetcher (L354)](trulia-fetcher/TruliaDataFetcher.py#L354).  The format of part of a row in HBase is shown below.  The [HBaseManager (L44)](common/HBaseManager.py#L44) handles retrieval of data from HBase and formats the response for the [RestCallHandler (L260)](server/RestCallHandler.py#L260).
+The XML is parsed and sent to HBase through HappyBase and the Thrift server.  There is are four tables in HBase: state, county, city, and zipcode. Each table has a single column family, 'cf', for the listing data which has columns keyed by the date of the listing stats.  The stats about single row in HBase are aggregated together and sent to HBase in the [TruliaDataFetcher](trulia-fetcher/TruliaDataFetcher.py).  The format of part of a row in HBase is shown below.  The [HBaseManager](common/HBaseManager.py) handles retrieval of data from HBase and formats the response for the [RestCallHandler](server/RestCallHandler.py).
+
+The row's key for the city table:
+
+     3|ca_san_francisco
+
+The row's columns:
 
      ...
      cf:2014-05-24             timestamp=1403686456225, value={'a': u'1338274', 'n': u'190'}            
@@ -72,6 +78,18 @@ The XML is parsed and sent to HBase through HappyBase and the Thrift server.  Th
      cf:2014-06-07             timestamp=1403686456253, value={'a': u'1366076', 'n': u'197'}            
      cf:2014-06-14             timestamp=1403686456268, value={'a': u'1389901', 'n': u'198'}   
 
+
+#### Redis
+
+As part of an evaluation of Redis on a single node vs HBase as part of a cluster (not a completely fair comparison), I tried using Redis to see if I could store all the listing data in memory.  Since Redis has no concept of tables, there is an abbreviation in the key prepended to the key above.  Also, having a variable number of columns is possible (i.e., using more complex hashs in Redis), but I wanted to try having the week be part of the key instead to keep it simple.
+
+The key for cities:
+
+     CT|3|ca_san_francisco|2014-05-24
+     
+The value represents a single listing (as inputed) from python:
+
+     {'a': 1338274, 'n': 190} 
 
 
 #### Hive 
