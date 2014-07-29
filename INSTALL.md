@@ -45,8 +45,8 @@ Manual Install
 
 3.  Python packages
   
-        $ sudo pip install flask happybase fluent-logger cython redis boto
-	$ sudo pip install boto --upgrade
+         $ sudo pip install flask happybase fluent-logger cython redis boto
+         $ sudo pip install boto --upgrade
 
 4.  Git this repository if not already done so
 
