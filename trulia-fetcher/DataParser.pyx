@@ -67,10 +67,10 @@ def parse_get_zipcode_stats_resp(text):
             
     head_dom = minidom.parseString(text)
     dom_list = head_dom.getElementsByTagName('listingStat')
-    zipcode = head_dom.getElementsByTagName('zipCode')[0].firstChild.nodeValue
 
     # No key, do not log
     try:
+        zipcode = head_dom.getElementsByTagName('zipCode')[0].firstChild.nodeValue
         int(zipcode)
     except:
         return

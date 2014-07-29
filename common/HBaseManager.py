@@ -145,10 +145,11 @@ class HBaseManager:
             row_dict = {}
             for week_i in json_doc['stats'][bed_i]:
                 rec = json_doc['stats'][bed_i][week_i]
-                row_dict['cf:' + week_i] = {'a':rec['a'],'n':rec['n']}
+                row_dict['cf:' + week_i] = "'{'a':" + str(rec['a']) + ",'n':" + str(rec['n']) + "}'"
                 
             row_key = str(bed_i) + '|' + geo_label
             table.put(row_key, row_dict)
+            
 
 def main():
 
