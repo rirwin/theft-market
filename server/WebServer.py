@@ -12,12 +12,12 @@ class WebServer:
         import RestCallHandler
 
         # HBase Manager
-        #import HBaseManager
-        #self.kv_store_mgr = HBaseManager.HBaseManager()
+        import HBaseManager
+        self.kv_store_mgr = HBaseManager.HBaseManager()
 
         # Redis Manager
-        import RedisManager
-        self.kv_store_mgr = RedisManager.RedisManager()
+        #import RedisManager
+        #self.kv_store_mgr = RedisManager.RedisManager()
 
         # RDBMS Manager
         import DatabaseManager

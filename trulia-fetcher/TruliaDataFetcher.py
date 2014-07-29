@@ -27,8 +27,8 @@ class TruliaDataFetcher:
         self.db_mgr = DatabaseManager.DatabaseManager(config_path)
 
         # TODO make this a configuration decision
-        self.kv_mgr = RedisManager.RedisManager()
-        #self.kv_mgr = HBaseManager.HBaseManager()
+        #self.kv_mgr = RedisManager.RedisManager()
+        self.kv_mgr = HBaseManager.HBaseManager()
         
         self.init_fluent()
 
@@ -444,11 +444,11 @@ def main():
     #tdf.load_all_states_from_xml_archive()
     #tdf.load_all_counties_from_xml_archive()
     #tdf.load_all_cities_from_xml_archive()
-    tdf.load_all_zipcodes_from_xml_archive()
+    #tdf.load_all_zipcodes_from_xml_archive()
 
     #tdf.fetch_all_states_data()
     #tdf.fetch_all_counties_all_states_data()
-    #tdf.fetch_all_cities_all_states_data()
+    tdf.fetch_all_cities_all_states_data()
     #tdf.fetch_all_zipcodes_data()
 
 
