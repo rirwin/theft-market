@@ -81,13 +81,13 @@ The row's columns:
 
 #### Redis
 
-As part of an evaluation of Redis on a single node vs HBase as part of a cluster (not a completely fair comparison), I tried using Redis to see if I could store all the listing data in memory.  Since Redis has no concept of tables, there is an abbreviation in the key prepended to the key above.  Also, having a variable number of columns is possible (i.e., using more complex sets in Redis), but I wanted to try having the week be part of the key instead to keep it simple.
+As part of an evaluation of Redis on a single node vs HBase as part of a cluster (not a completely fair comparison), I tried using Redis to see if I could store all the listing data in memory.  Since Redis has no concept of tables, there is an abbreviation in the key prepended to the key above.  Also, having a variable number of columns is possible (i.e., using more complex hashs in Redis), but I wanted to try having the week be part of the key instead to keep it simple.
 
 The key for cities:
 
      CT|3|ca_san_francisco|2014-05-24
      
-The value represents a single listing:
+The value represents a single listing (as inputed) from python:
 
      {'a': 1338274, 'n': 190} 
 
