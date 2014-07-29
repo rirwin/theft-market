@@ -28,8 +28,9 @@ class TruliaDataFetcher:
 
         # TODO make this a configuration decision
         #self.kv_mgr = RedisManager.RedisManager()
-        self.kv_mgr = HBaseManager.HBaseManager()
-        
+        #self.kv_mgr = HBaseManager.HBaseManager()
+        self.kv_mgr = None
+
         self.init_fluent()
 
 
@@ -167,6 +168,7 @@ class TruliaDataFetcher:
             return False  # Notify caller that we did not hit Trulia's API 
 
         latest_rx_date, now_date = self.get_api_call_date_range(geo_type, geo_dict)
+        print latest_rx_date, now_date
         url_str = self.form_url(geo_type, geo_dict, latest_rx_date, now_date)
         text = self.fetch_executor(url_str)
         if text is None:
@@ -184,6 +186,7 @@ class TruliaDataFetcher:
         for k in obj_key_dict:
             where_str += k + " = '" + str(obj_key_dict[k]) + "' and "
         where_str = where_str[:-4]
+        print where_str
         res = self.db_mgr.simple_select_query(self.db_mgr.conn, table_str, "most_recent_week", where_str)
         if len(res) == 0:
             latest_ls_date = "2000-01-01"
@@ -255,8 +258,10 @@ class TruliaDataFetcher:
             return
 
         metadata_table = "data_" + geo_type
-        if geo_type == "county" or geo_type == "city":
-            metadata_key_list = [ k + " = '" + geo_dict[k] + "'" for k in geo_dict]
+        if geo_type == "city":
+            metadata_key_list = ["state_code = '" + geo_dict['state_code'] + "'", "city = '" + geo_dict['city'] + "'"]
+        elif geo_type == "county":
+            metadata_key_list = ["state_code = '" + geo_dict['state_code'] + "'", "county = '" + geo_dict['county'] + "'"] 
         elif geo_type == "state":
             metadata_key_list = ["state_code = '" + geo_dict['state_code'] + "'"]
         elif geo_type == "zipcode":
@@ -265,7 +270,8 @@ class TruliaDataFetcher:
         # send to HDFS
         # self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)        
         # send to kv store
-        self.kv_mgr.insert_json_doc_records(json_doc)
+        if self.kv_mgr is not None:
+            self.kv_mgr.insert_json_doc_records(json_doc)
             
         # update meta-store
         most_recent_week = json_doc['most_recent_week']
@@ -381,9 +387,7 @@ class TruliaDataFetcher:
 
                         json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
                         print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
-
                         self.write_executor(json_doc, "city", geo_dict)
-                    
                     
 
     def save_xml_file(self, text, geo_type, geo_dict):
@@ -441,9 +445,11 @@ def main():
 
     tdf = TruliaDataFetcher('../conf/')
 
+    
+
     #tdf.load_all_states_from_xml_archive()
     #tdf.load_all_counties_from_xml_archive()
-    #tdf.load_all_cities_from_xml_archive()
+    tdf.load_all_cities_from_xml_archive()
     #tdf.load_all_zipcodes_from_xml_archive()
 
     #tdf.fetch_all_states_data()
