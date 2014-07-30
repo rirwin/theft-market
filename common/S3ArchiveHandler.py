@@ -1,7 +1,9 @@
 import ConfigParser
 import boto
-#import datetime
 import time
+import tarfile
+import os
+import sys
 from boto.s3.connection import S3Connection
 
 class S3ArchiveHandler:
@@ -12,8 +14,9 @@ class S3ArchiveHandler:
         s3_access = config.get("main", "access")
         s3_secret = config.get("main", "secret")
         self.info_archive_filename = config.get("main", "info-archive")
-        self.xml_data_archive_filename = config.get("main", "xml-data-archive")
         self.local_data_dir = config.get("main", "local-data-dir")
+        self.archive_bucket_dir = config.get("main", "archive-bucket-dir")
+
         self.conn = S3Connection(s3_access, s3_secret)
         self.bucket = self.conn.get_bucket('theft-market')
 
@@ -33,7 +36,7 @@ class S3ArchiveHandler:
         keys = self.bucket.list(pattern)
         for key in keys:
             
-            # gets date when keys are text_text_YYYY-MM-DD.file_extension
+            # gets date when keys are pattern_YYYY-MM-DD.file_extension
             key_date = time.strptime(key.name.split('_')[-1].split('.')[0], "%Y-%m-%d")
             if key_date > max_date:
                 max_key = key
@@ -44,24 +47,107 @@ class S3ArchiveHandler:
 
     def get_most_recent_xml_archive_from_s3(self):
         
-        key = self.get_most_recent_key_name_with_pattern("xml_archive_")
-        filename = key.name # keeps the same name
+        key = self.get_most_recent_key_name_with_pattern(self.archive_bucket_dir + "/xml_archive")
+        if key is None:
+            print "No archives found in", self.archive_bucket_dir, "with pattern xml_archive"
+            return
+        
+        # get filename of archive, keep the same name
+        filename = key.name.split('/')[-1]  
         print "Getting Archive:", filename
         fp = open(self.local_data_dir + '/' + filename,'w')
-        key.get_file(fp)
+        key.get_file(fp,  cb=percent_cb, num_cb=10)
+        print # newline
+        return filename
 
 
-    def send_xml_archive_to_s3(self, archive_full_path):
-        print archive_full_path
+    def create_archive_of_dir(self, archive_name, directory):
+        if not archive_name.endswith(".tar.gz"):
+            print "archive name should end in tar.gz"
+            return 
 
+        dir_ = os.getcwd() # save current dir
+        
+        try:
+            # limit actions to the data directory
+            os.chdir(self.local_data_dir)
+            tar = tarfile.open(archive_name, "w:gz")
+            print "creating tarfile of", directory
+            tar.add(directory)
+            tar.close()
+            archive_name_created = archive_name
+        except:
+            archive_name_created = None
+
+        os.chdir(dir_) # go back to previous dir
+        return archive_name_created
+
+
+    def create_data_archive(self):
+        curr_date = time.strftime("%Y-%m-%d")
+        archive_name = "xml_archive_" + curr_date + "tar.gz"
+        archive_name_created = self.create_archive_of_dir(archive_name, "theft-market")
+        return archive_name_created
+
+
+    def extract_archive_file(self, archive_name):
+        if not archive_name.endswith(".tar.gz"):
+            print "archive name should end in tar.gz"
+            return 
+
+        dir_ = os.getcwd() # save current dir
+        
+        # limit actions to the data directory
+        os.chdir(self.local_data_dir)
+
+        if archive_name not in os.listdir("."):
+            print "Archive", archive_name, "not in", self.local_data_dir
+            return
+
+        try:
+            tar = tarfile.open(archive_name)
+            tar.extractall()
+        except:
+            print "Problems extracting", archive_name, "to", self.local_data_dir
+        
+        os.chdir(dir_) # go back to previous dir
+
+    def send_archive_to_s3(self, archive_name):
+        
+        # restrict actions to local data directory
+        full_path = self.local_data_dir + '/' + archive_name
+        if archive_name not in os.listdir(self.local_data_dir):
+            print "Archive", archive_name, "not in", self.local_data_dir
+            return
+
+        full_key_name = os.path.join(self.archive_bucket_dir, archive_name)
+        k = self.bucket.new_key(full_key_name)
+        k.set_contents_from_filename(self.local_data_dir + '/' + archive_name, cb=percent_cb, num_cb=10)
+        print # newline
+
+def percent_cb(complete, total):
+    sys.stdout.write('.')
+    sys.stdout.flush()
+
+
+def init_process(s3ah):
+    s3ah.get_info_sql_from_s3()
+    full_archive_name = s3ah.get_most_recent_xml_archive_from_s3()
+
+    if fule_archive_name is not None:
+        archive_filename = full_archive_name.split('/')[-1]
+        s3ah.extract_archive_file(archive_filename)    
+
+
+def create_archive_and_send(s3ah):
+    archive_name = s3ah.create_data_archive()
+    s3ah.send_archive_to_s3(archive_name)
 
 
 def main():
 
     s3ah = S3ArchiveHandler('../conf/')
-    s3ah.get_info_sql_from_s3()
-    s3ah.get_most_recent_xml_archive_from_s3()
-
+        
 
 if '__main__' == __name__:
     main()
