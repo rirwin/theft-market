@@ -89,7 +89,7 @@ class HBaseManager:
 
         
     @wrappers.general_function_handler
-    def get_list_average(self, state_code, city, num_bedrooms, start_date, end_date):
+    def get_list_average(self, geo_type, geo_label, num_bedrooms, start_date, end_date):
 
         if geo_type == 'ST':
             table = self.state_stats_table
@@ -115,6 +115,7 @@ class HBaseManager:
 
         num = 0
         denom = 0
+
         for key in filtered_keys:
             num += int(eval(data[key])['a'])*int(eval(data[key])['n'])
             denom += int(eval(data[key])['n'])
