@@ -2,7 +2,7 @@ import logging
 import sys
 import ConfigParser
 
-config_path  = "../conf/"
+config_path  = "/home/ubuntu/theft-market/conf/"
 config = ConfigParser.ConfigParser()
 config.read(config_path + "theft-metastore.conf")
 logging.basicConfig(filename = config.get("main", "datastore-access-time-log-path"), level = config.get("main", "loglevel"))
