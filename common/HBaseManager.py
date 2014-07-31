@@ -60,6 +60,7 @@ class HBaseManager:
     @wrappers.general_function_handler
     def get_list_volume(self, geo_type, geo_label, num_bedrooms, start_date, end_date):
 
+
         if geo_type == 'ST':
             table = self.state_stats_table
         elif geo_type == 'CI':
@@ -145,7 +146,7 @@ class HBaseManager:
             row_dict = {}
             for week_i in json_doc['stats'][bed_i]:
                 rec = json_doc['stats'][bed_i][week_i]
-                row_dict['cf:' + week_i] = "'{'a':" + str(rec['a']) + ",'n':" + str(rec['n']) + "}'"
+                row_dict['cf:' + week_i] = "{'a':" + str(rec['a']) + ",'n':" + str(rec['n']) + "}"
                 
             row_key = str(bed_i) + '|' + geo_label
             table.put(row_key, row_dict)
