@@ -5,6 +5,7 @@ import os
 import Queue
 import datetime
 import glob
+import getopt
 from xml.dom import minidom
 from fluent import sender
 from fluent import event
@@ -19,7 +20,42 @@ import wrappers
 import RedisManager
 import DataParser
 
+def usage():
 
+    print "python TruliaDataFetcher.py -l <geo location to load>"
+    print "python TruliaDataFetcher.py -f <geo location to fetch>"
+    print "geo locations are c,s,z,o for city, state, zipcode, county respectively"
+    print "For example:"
+    print "python TruliaDataFetcher.py -l cszo -f z"
+    print "will load cities, states, zipcodes, and counties into the key-value store"
+    print "and fetch even more recent data for zipcodes"
+    print "-f is equivalent to --fetch"
+    print "-l is equivalent to --load"
+    sys.exit(1)
+
+def parse_args(argv):
+
+    fetch_geo_types = ""
+    load_geo_types = ""
+    try:
+        opts, args = getopt.getopt(argv,"f:l:h",["fetch=","load=","help"])
+    except getopt.GetoptError:
+        usage()
+
+    for opt, arg in opts:
+
+        if opt in ("-h","--help"):
+            usage()
+        elif opt in ("-f","--fetch"):
+            fetch_geo_types = arg
+        elif opt in ("-l","--load"):
+            load_geo_types = arg
+        else:
+            print "bad argument"
+            usage()
+
+    return [fetch_geo_types, load_geo_types]
+        
 class TruliaDataFetcher:
     def __init__(self, config_path):
         trulia_conf = TruliaConfLoader.TruliaConfLoader(config_path)
@@ -28,8 +64,8 @@ class TruliaDataFetcher:
 
         # TODO make this a configuration decision
         #self.kv_mgr = RedisManager.RedisManager()
-        #self.kv_mgr = HBaseManager.HBaseManager()
-        self.kv_mgr = None
+        self.kv_mgr = HBaseManager.HBaseManager()
+        #self.kv_mgr = None
 
         self.init_fluent()
 
@@ -438,26 +474,48 @@ class TruliaDataFetcher:
 
         return True
 
-def main():
 
-    #dm = DatabaseManager.DatabaseManager('../conf/')
-    #dm.reset_data_metadata_tables()
+def fetch(tdf, fetch_geo_items):
+
+    print "fetching items", fetch_geo_items
+    if 's' in fetch_geo_items:
+        tdf.fetch_all_states_data()
+    if 'o' in fetch_geo_items:
+        tdf.fetch_all_counties_all_states_data()
+    if 'c' in fetch_geo_items:
+        tdf.fetch_all_cities_all_states_data()
+    if 'z' in fetch_geo_items:
+        tdf.fetch_all_zipcodes_data()
+
+def load(tdf, load_geo_items):
+
+    print "loading items", load_geo_items
+    if 's' in load_geo_items:
+        tdf.load_all_states_from_xml_archive()
+    if 'o' in load_geo_items:
+        tdf.load_all_counties_from_xml_archive()
+    if 'c' in load_geo_items:
+        tdf.load_all_cities_from_xml_archive()
+    if 'z' in load_geo_items:
+        tdf.load_all_zipcodes_from_xml_archive()
+
+
+def main(argv):
+
+    [fetch_geo_items, load_geo_items] = parse_args(argv)
+     
+    if fetch_geo_items == "" and load_geo_items == "":
+        usage()
 
     tdf = TruliaDataFetcher('../conf/')
 
-    
+    if len(load_geo_items) > 0:
+        load(tdf, load_geo_items)
 
-    #tdf.load_all_states_from_xml_archive()
-    #tdf.load_all_counties_from_xml_archive()
-    tdf.load_all_cities_from_xml_archive()
-    #tdf.load_all_zipcodes_from_xml_archive()
-
-    #tdf.fetch_all_states_data()
-    #tdf.fetch_all_counties_all_states_data()
-    tdf.fetch_all_cities_all_states_data()
-    #tdf.fetch_all_zipcodes_data()
+    if len(fetch_geo_items) > 0:
+        fetch(tdf, fetch_geo_items)
 
 
 # program
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
