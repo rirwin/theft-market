@@ -44,7 +44,6 @@ class city_query_handler(object):
         if len(params_dict['state_code']) != 2:
             return "please use state_code as 'CA'", 400
 
-        params_dict['city'] = '_'.join(params_dict['city'].split(' ')).lower()
         params_dict['state_code'] = params_dict['state_code'].lower()
 
         if is_valid_date(params_dict['start_date']) is False:
@@ -92,7 +91,6 @@ class county_query_handler(object):
         if len(params_dict['state_code']) != 2:
             return "please use state_code as 'CA'", 400
 
-        params_dict['county'] = '_'.join(params_dict['county'].split(' ')).lower()
         params_dict['state_code'] = params_dict['state_code'].lower()
 
         if is_valid_date(params_dict['start_date']) is False:
@@ -304,7 +302,7 @@ def is_valid_city(city):
     return True
         
 
-# TODO this experiment failed, break these down into functions
+# TODO refactor using geo_type and geo_label conventions from input side
 def get_data(kv_store_mgr, db_mgr, params_dict):
 
     start_date = params_dict['start_date']
@@ -361,6 +359,7 @@ def get_data(kv_store_mgr, db_mgr, params_dict):
             get_zipcode_list_average_dict_completed = time.time()
 
             # TODO print to [info] instead of [error]
+            
             logging.info("------------- Start Data Warehouse Access -----------------")
             logging.info("get nearby cities from MySQL (GPS calculations) took: " + str(get_city_and_nearby_cities_complete - get_data_start) + "s")
             logging.info("get nearby zipcodes from MySQL (GPS calculations) took: " + str(get_nearby_zipcodes_complete - get_city_and_nearby_cities_complete) + "s")
@@ -368,7 +367,7 @@ def get_data(kv_store_mgr, db_mgr, params_dict):
             logging.info("get zipcode average listings from KV Store (10 zipcode lookup and manipulation) took: " + str(get_zipcode_list_average_dict_completed - get_city_list_average_dict_completed) + "s")
             logging.info("Total time took: " +  str(time.time() - get_data_start) + "s")
             logging.info("------------- Done with Data Warehouse Access -----------------")
-
+            
             return json_resp
 
 
