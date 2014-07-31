@@ -129,7 +129,7 @@ class DatabaseManager:
         res = cursor.fetchone()[0]
         if res == 1:
             cursor.execute("select most_recent_week from " + table_str + " where " + ' and '.join(pri_key_match_list))
-            curr_latest_week = cursor.fetchone()[0]
+            curr_latest_week = str(cursor.fetchone()[0]) # comes out as datetime.date
             if datetime.datetime.strptime(curr_latest_week, '%Y-%m-%d') < datetime.datetime.strptime(most_recent_week, '%Y-%m-%d'):
                 cursor.execute("update " + table_str + " set timestamp = NOW(), most_recent_week = '" + most_recent_week + ", date_fetched = '" + date_fetched + "'  where " + ' and '.join(pri_key_match_list)) 
         else:
