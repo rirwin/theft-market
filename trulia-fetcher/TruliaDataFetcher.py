@@ -92,7 +92,7 @@ class TruliaDataFetcher:
         for state_code_tuple in list(res):
             state_code = state_code_tuple[0]
             print "loading state from archive:",state_code
-            self.read_already_fetched_files("ST",{"state_code":state_code})
+            self.read_already_fetched_files("state",{"state_code":state_code})
 
 
     def load_all_zipcodes_from_xml_archive(self):
@@ -101,7 +101,7 @@ class TruliaDataFetcher:
             zipcode = zipcode_tuple[0]
             zipcode = str(100000 + zipcode)[1:]
             print "loading zipcode from archive:",zipcode 
-            self.read_already_fetched_files("ZP",{"zipcode":zipcode})
+            self.read_already_fetched_files("zipcode",{"zipcode":zipcode})
 
 
     def load_all_cities_from_xml_archive(self):
@@ -112,7 +112,7 @@ class TruliaDataFetcher:
             for city_tuple in list(city_tuples):
                 city = city_tuple[0]
                 print "loading city from archive:", city, ",", state_code 
-                self.read_already_fetched_files("CT",{"state_code":state_code, "city":city})
+                self.read_already_fetched_files("city",{"state_code":state_code, "city":city})
 
 
     def load_all_counties_from_xml_archive(self):
@@ -123,7 +123,7 @@ class TruliaDataFetcher:
             for county_tuple in list(county_tuples):
                 county = county_tuple[0]
                 print "loading county from archive:", county, ",", state_code 
-                self.read_already_fetched_files("CO",{"state_code":state_code, "county":county})
+                self.read_already_fetched_files("county",{"state_code":state_code, "county":county})
 
 
     def fetch_all_states_data(self):
@@ -344,87 +344,50 @@ class TruliaDataFetcher:
         return None
 
 
-    # TODO refactor this function
     def read_already_fetched_files(self, geo_type, geo_dict):
 
-        # TODO geo_types here are ST for state, CT for city... fix
-        if geo_type == "ST":
+        if geo_type == "state":
             state_code = geo_dict['state_code']
             file_list = glob.glob(self.data_dir + '/state/'+ state_code + '/*/' + state_code + '.xml')
-            for file_ in file_list:
-                with open(file_, 'r') as stream:
-                    # check if already read in
-                    date_fetched = file_.split('/')[-2]
-                    date_fetched_in_DB = self.get_latest_api_call_date("state",{"state_code":state_code})
-                    if date_fetched_in_DB != date_fetched:
-                        text = stream.read()
-                        json_doc = self.parse_executor(DataParser.parse_get_state_stats_resp, text)
-                        if json_doc is None: 
-                            return
+            parser_func = DataParser.parse_get_state_stats_resp
 
-                        json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
-                        print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
-                        self.write_executor(json_doc, "state", geo_dict)
-
-        elif geo_type == "ZP":
+        elif geo_type == "zipcode":
             zipcode = geo_dict['zipcode']
-            file_list = glob.glob(self.data_dir + '/zipcode/'+ zipcode + '/*/' + zipcode + '.xml')
-            for file_ in file_list:
-                with open(file_, 'r') as stream:
-                    # check if already read in
-                    date_fetched = file_.split('/')[-2]
-                    date_fetched_in_DB = self.get_latest_api_call_date("zipcode",{"zipcode":zipcode})
-                    if date_fetched_in_DB != date_fetched:
-                        text = stream.read()
-                        json_doc = self.parse_executor(DataParser.parse_get_zipcode_stats_resp, text)
-                        if json_doc is None: 
-                            return
+            file_list = glob.glob(self.data_dir + '/zipcode/'+ zipcode + '/*/' + zipcode + '.xml')    
+            parser_func = DataParser.parse_get_zipcode_stats_resp
 
-                        json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
-                        print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
-                        self.write_executor(json_doc, "zipcode", geo_dict)
-
-        elif geo_type == "CO":
+        elif geo_type == "county":
             state_code = geo_dict['state_code']
             county = geo_dict['county']
             county_ = '_'.join(county.split(' '))
             file_list = glob.glob(self.data_dir + '/county/' + state_code + '/' + county_ + '/*/' + county_ + '.xml')
-            for file_ in file_list:
-                with open(file_, 'r') as stream:
-                    # check if already read in
-                    date_fetched = file_.split('/')[-2]
-                    date_fetched_in_DB = self.get_latest_api_call_date("county",{"state_code":state_code,"county":county})
-                    if date_fetched_in_DB != date_fetched:
-                        text = stream.read()
-                        json_doc = self.parse_executor(DataParser.parse_get_county_stats_resp, text)
-                        if json_doc is None: 
-                            return
+            
+            parser_func = DataParser.parse_get_county_stats_resp
 
-                        json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
-                        print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
-
-                        self.write_executor(json_doc, "county", geo_dict)
-                                        
-        elif geo_type == "CT":
+        elif geo_type == "city":
             state_code = geo_dict['state_code']
             city = geo_dict['city']
             city_ = '_'.join(city.split(' '))
             file_list = glob.glob(self.data_dir + '/city/' + state_code + '/' + city_ + '/*/' + city_ + '.xml')
-            for file_ in file_list:
-                with open(file_, 'r') as stream:
-                    # check if already read in
-                    date_fetched = file_.split('/')[-2]
-                    date_fetched_in_DB = self.get_latest_api_call_date("city",{"state_code":state_code,"city":city})
-                    if date_fetched_in_DB != date_fetched:
-                        text = stream.read()
-                        json_doc = self.parse_executor(DataParser.parse_get_city_stats_resp, text)
-                        if json_doc is None: 
-                            return
 
-                        json_doc['date_fetched'] = file_.split('/')[-2] # overwrite what the parser wrote
-                        print 'read local data with most recent week', json_doc['most_recent_week'], ", fetched on", json_doc['date_fetched']
-                        self.write_executor(json_doc, "city", geo_dict)
-                    
+            parser_func = DataParser.parse_get_city_stats_resp
+
+        for file_ in file_list:
+            with open(file_, 'r') as stream:
+
+                text = stream.read()
+                json_doc = self.parse_executor(parser_func, text)
+                if json_doc is None: 
+                    return
+
+                # overwrite what the parser wrote
+                json_doc['date_fetched'] = file_.split('/')[-2] 
+                
+                print 'read data up to', json_doc['most_recent_week'], 
+                print ', fetched on', json_doc['date_fetched']
+                
+                self.write_executor(json_doc, geo_type, geo_dict)
+
 
     def save_xml_file(self, text, geo_type, geo_dict):
 
