@@ -85,7 +85,7 @@ class S3ArchiveHandler:
 
     def create_data_archive(self):
         curr_date = time.strftime("%Y-%m-%d")
-        archive_name = "xml_archive_" + curr_date + "tar.gz"
+        archive_name = "xml_archive_" + curr_date + ".tar.gz"
         archive_name_created = self.create_archive_of_dir(archive_name, "theft-market")
         return archive_name_created
 
@@ -147,7 +147,8 @@ def create_archive_and_send(s3ah):
 def main():
 
     s3ah = S3ArchiveHandler('../conf/')
-        
+    create_archive_and_send(s3ah)
+    
 
 if '__main__' == __name__:
     main()
