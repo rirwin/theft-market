@@ -64,8 +64,8 @@ class TruliaDataFetcher:
 
         # TODO make this a configuration decision
         #self.kv_mgr = RedisManager.RedisManager()
-        self.kv_mgr = HBaseManager.HBaseManager()
-        #self.kv_mgr = None
+        #self.kv_mgr = HBaseManager.HBaseManager()
+        self.kv_mgr = None
 
         self.init_fluent()
 
@@ -84,7 +84,8 @@ class TruliaDataFetcher:
 
 
     def init_fluent(self):
-        sender.setup('hdfs')
+        #sender.setup('hdfs')
+        sender.setup('fs')
 
 
     def load_all_states_from_xml_archive(self):
@@ -303,8 +304,9 @@ class TruliaDataFetcher:
         elif geo_type == "zipcode":
             metadata_key_list = ["zipcode = '" + geo_dict['zipcode'] + "'"]
 
-        # send to HDFS
-        # self.send_accum_fluentd_records('state.all_listing_stats', fluentd_accum)        
+        # send to FluentD
+        self.send_json_doc_records_to_fluentd(geo_type + '.all_listing_stats', json_doc)        
+
         # send to kv store
         if self.kv_mgr is not None:
             self.kv_mgr.insert_json_doc_records(json_doc)
@@ -416,9 +418,23 @@ class TruliaDataFetcher:
             stream.write(str(text))
 
 
-    def send_accum_fluentd_records(self, match_rule, fluentd_accum):
-        for record in fluentd_accum:
-            event.Event(match_rule, record)
+    def send_json_doc_records_to_fluentd(self, match_rule, json_doc):
+
+        metadata_keys = json_doc.keys()
+        metadata_keys.remove('stats')
+
+        metadata_dict = {}
+        for key in metadata_keys:
+            metadata_dict[key] = json_doc[key]
+
+        for k_bed in json_doc['stats']:
+            for week in json_doc['stats'][k_bed]:
+                rec = dict(metadata_dict)
+                rec['num_beds'] = k_bed
+                rec['week_ending_date'] = week
+                rec['avg_list'] = json_doc['stats'][k_bed][week]['a']
+                rec['num_list'] = json_doc['stats'][k_bed][week]['n']
+                event.Event(match_rule, rec)
 
 
     @staticmethod
