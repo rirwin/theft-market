@@ -32,7 +32,9 @@ class RedisManager:
     @wrappers.general_function_handler
     def get_list_volume(self, namespace, geo_label, num_bedrooms, start_date, end_date):
 
-        data = self.conn.hgetall('|'.join([namespace, str(num_bedrooms), geo_label]))
+        row_key = '|'.join([namespace, str(num_bedrooms), geo_label])
+        print row_key
+        data = self.conn.hgetall(row_key)
 
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
@@ -49,7 +51,8 @@ class RedisManager:
     @wrappers.general_function_handler
     def get_list_average(self, namespace, geo_label, num_bedrooms, start_date, end_date):
 
-        data = self.conn.hgetall('|'.join([namespace, str(num_bedrooms), geo_label]))
+        row_key = '|'.join([namespace, str(num_bedrooms), geo_label])
+        data = self.conn.hgetall(row_key)
 
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
