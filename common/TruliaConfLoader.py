@@ -18,12 +18,8 @@ class TruliaConfLoader:
 
 
     def load_utils(self, config):
-        self.kafka_dir = config.get("kafka","srcDir")
-        self.kafka_host = config.get("kafka","host")
-        self.kafka_port = config.get("kafka","port")
         self.zookeeper_host = config.get("zookeeper","host")
         self.zookeeper_port = config.get("zookeeper","port")
-        self.fluent_dir = config.get("fluentd","fluentDir")
 
 
     def load_database_conf(self, config):
