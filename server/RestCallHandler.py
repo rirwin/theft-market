@@ -4,7 +4,7 @@ import time
 import logging
 import ConfigParser
 
-config_path  = "/home/ubuntu/theft-market/conf/"
+config_path  = "..//conf/"
 config = ConfigParser.ConfigParser()
 config.read(config_path + "theft-metastore.conf")
 logging.basicConfig(filename = config.get("main", "datastore-access-time-log-path"), level = config.get("main", "loglevel"))
@@ -556,7 +556,7 @@ def get_city_list_average_dict(kv_store_mgr, state_code, city, num_bedrooms, sta
 def get_county_list_volume_dict(kv_store_mgr, state_code, county, num_bedrooms, start_date, end_date):
     lv_dict = {}
     geo_label = state_code.lower() + '-' + '_'.join(county.split(' ')).lower()
-    geo_type = 'CI'
+    geo_type = 'CO'
     list_volume = kv_store_mgr.get_list_volume(geo_type, geo_label, num_bedrooms, start_date, end_date)
 
     lv_dict['list_volume'] = list_volume
@@ -572,7 +572,7 @@ def get_county_list_volume_dict(kv_store_mgr, state_code, county, num_bedrooms, 
 def get_county_list_average_dict(kv_store_mgr, state_code, county, num_bedrooms, start_date, end_date):
     la_dict = {}
     geo_label = state_code.lower() + '-' + '_'.join(county.split(' ')).lower()
-    geo_type = 'CI'
+    geo_type = 'CO'
     list_average = kv_store_mgr.get_list_average(geo_type, geo_label, num_bedrooms, start_date, end_date)
 
     la_dict['list_average'] = list_average
