@@ -2,7 +2,7 @@ from flask import Flask, request
 import sys
 
 class WebServer:
-    def __init__(self, trulia_home_path):
+    def __init__(self, trulia_home_path, kv_store = 'r'):
         self.common_path = trulia_home_path + "/common/"
         self.config_path = trulia_home_path + "/conf/"
         self.debug = False
@@ -11,13 +11,12 @@ class WebServer:
 
         import RestCallHandler
 
-        # HBase Manager
-        import HBaseManager
-        self.kv_store_mgr = HBaseManager.HBaseManager()
-
-        # Redis Manager
-        #import RedisManager
-        #self.kv_store_mgr = RedisManager.RedisManager()
+        if kv_store == 'h':
+            import HBaseManager
+            self.kv_store_mgr = HBaseManager.HBaseManager()
+        elif kv_store == 'r':         
+            import RedisManager
+            self.kv_store_mgr = RedisManager.RedisManager()
 
         # RDBMS Manager
         import DatabaseManager
@@ -76,5 +75,8 @@ class WebServer:
 
 if __name__ == '__main__':
     
-    server = WebServer('..')
+    kv_store = 'r' # Redis
+    #kv_store = 'h' # HBase
+
+    server = WebServer('..',kv_store)
     server.app.run(debug = True, port = 5000, host = '0.0.0.0')
