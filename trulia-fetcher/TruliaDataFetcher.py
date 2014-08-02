@@ -15,10 +15,9 @@ common_path = "../common/"
 sys.path.append(common_path)
 import TruliaConfLoader
 import DatabaseManager
-import HBaseManager
 import wrappers
-import RedisManager
 import DataParser
+
 
 def usage():
 
@@ -27,18 +26,34 @@ def usage():
     print "geo locations are c,s,z,o for city, state, zipcode, county respectively"
     print "For example:"
     print "python TruliaDataFetcher.py -l cszo -f z"
-    print "will load cities, states, zipcodes, and counties into the key-value store"
+    print "will read cities, states, zipcodes, and counties"
     print "and fetch even more recent data for zipcodes"
+    print ""
+    print "To actually load things parsed into a kv-store, you must pass the -k option"
+    print "with the specified type of store (Redis or HBase) "
+    print "-k r for Redis"
+    print "-k h for Hbase"
+    print ""
+    print "To send parsed output to fluentd, you must pass the -d option"
+    print "with the type of filesystem sent to (this host filesystem or hdfs)"
+    print "-d f for this filesystem"
+    print "-d h for the hdfs filesystem"
+    print ""
+    print "-d is equivalent to --fluentd"
+    print "-k is equivalent to --kv-store"
     print "-f is equivalent to --fetch"
     print "-l is equivalent to --load"
     sys.exit(1)
+
 
 def parse_args(argv):
 
     fetch_geo_types = ""
     load_geo_types = ""
+    kv_store = ""
+    fluentd_rx = ""
     try:
-        opts, args = getopt.getopt(argv,"f:l:h",["fetch=","load=","help"])
+        opts, args = getopt.getopt(argv,"d:k:f:l:h",["fluentd=","kv-store=","fetch=","load=","help"])
     except getopt.GetoptError:
         usage()
 
@@ -46,6 +61,10 @@ def parse_args(argv):
 
         if opt in ("-h","--help"):
             usage()
+        elif opt in ("-d","--fluentd"):
+            fluentd_rx = arg.lower()
+        elif opt in ("-k","--kv-store"):
+            kv_store = arg.lower()
         elif opt in ("-f","--fetch"):
             fetch_geo_types = arg
         elif opt in ("-l","--load"):
@@ -54,20 +73,42 @@ def parse_args(argv):
             print "bad argument"
             usage()
 
-    return [fetch_geo_types, load_geo_types]
+    return [fetch_geo_types, load_geo_types, kv_store, fluentd_rx]
+
         
 class TruliaDataFetcher:
-    def __init__(self, config_path):
+    def __init__(self, config_path, cla_dict):
         trulia_conf = TruliaConfLoader.TruliaConfLoader(config_path)
         self.load_trulia_params(trulia_conf)
         self.db_mgr = DatabaseManager.DatabaseManager(config_path)
 
-        # TODO make this a configuration decision
-        #self.kv_mgr = RedisManager.RedisManager()
-        #self.kv_mgr = HBaseManager.HBaseManager()
-        self.kv_mgr = None
+        kv_store = cla_dict['kv_store']
+        if kv_store == '':
+            self.kv_mgr = None
+        elif kv_store == 'h':
+            print "loading HBase manager",
+            import HBaseManager
+            self.kv_mgr = HBaseManager.HBaseManager()
+        elif kv_store == 'r':
+            print "loading Redis manager",
+            import RedisManager
+            self.kv_mgr = RedisManager.RedisManager()
 
-        self.init_fluent()
+        print "completed"
+
+
+        fluentd_rx = cla_dict['fluentd_rx']
+        if fluentd_rx == '':
+            self.fluentd_enabled = False
+            print "FluentD not enabled"
+        elif fluentd_rx == 'fs':
+            sender.setup('fs') 
+            self.fluentd_enabled = True
+            print "FluentD enabled for local filesystem"
+        elif fluentd_rx == 'hdfs':
+            sender.setup('hdfs')
+            self.fluentd_enabled = True
+            print "FluentD enabled for HDFS"
 
 
     def load_trulia_params(self, trulia_conf):
@@ -81,11 +122,6 @@ class TruliaDataFetcher:
         self.apikeys = trulia_conf.apikeys
         self.curr_key_idx = 0
         self.data_dir = trulia_conf.data_dir
-
-
-    def init_fluent(self):
-        #sender.setup('hdfs')
-        sender.setup('fs')
 
 
     def load_all_states_from_xml_archive(self):
@@ -305,7 +341,8 @@ class TruliaDataFetcher:
             metadata_key_list = ["zipcode = '" + geo_dict['zipcode'] + "'"]
 
         # send to FluentD
-        self.send_json_doc_records_to_fluentd(geo_type + '.all_listing_stats', json_doc)        
+        if self.fluentd_enabled:
+            self.send_json_doc_records_to_fluentd(geo_type + '.all_listing_stats', json_doc)        
 
         # send to kv store
         if self.kv_mgr is not None:
@@ -481,12 +518,14 @@ def load(tdf, load_geo_items):
 
 def main(argv):
 
-    [fetch_geo_items, load_geo_items] = parse_args(argv)
+    [fetch_geo_items, load_geo_items, kv_store, fluentd_rx] = parse_args(argv)
      
     if fetch_geo_items == "" and load_geo_items == "":
         usage()
+    
+    params_dict = {"kv_store":kv_store, "fluentd_rx":fluentd_rx}
 
-    tdf = TruliaDataFetcher('../conf/')
+    tdf = TruliaDataFetcher('../conf/', params_dict)
 
     if len(load_geo_items) > 0:
         load(tdf, load_geo_items)
