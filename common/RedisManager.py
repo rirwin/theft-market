@@ -5,9 +5,10 @@ import datetime
 import wrappers
 
 # redis keys are stored
-# <namespace>|<k_bedrooms>|<geographic_label>| ...
-# |<date: YYYY_MM_DD>
+# <namespace>|<k_bedrooms>|<geographic_label>
 # namespace for state is ST, city: CI, county CO, zipcode ZP
+#
+# The value is a map with keys of <date: YYYY_MM_DD>
 # the value is {'a':avg_list_price, 'n':num_listings}
 
 # geo label for state is just the state_code (XX)
@@ -31,67 +32,40 @@ class RedisManager:
     @wrappers.general_function_handler
     def get_list_volume(self, namespace, geo_label, num_bedrooms, start_date, end_date):
 
-        keys = self.conn.keys('|'.join([namespace, str(num_bedrooms), geo_label]) + '*')
+        data = self.conn.hgetall('|'.join([namespace, str(num_bedrooms), geo_label]))
+
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
         
-        filtered_keys = []
-        for k in keys:
-            attrs = k.split('|')
-            key_datetime = datetime.datetime.strptime(attrs[-1],"%Y-%m-%d")
-            if key_datetime > start_datetime and key_datetime < end_datetime:
-                filtered_keys.append(k)
+        filtered_keys = [k for k in data.keys() if datetime.datetime.strptime(k,"%Y-%m-%d") < end_datetime and datetime.datetime.strptime(k,"%Y-%m-%d") > start_datetime]
 
         sum_ = 0
         for key in filtered_keys:
-            sum_ += int(eval(self.conn.get(key))['n'])
-    
+            sum_ += int(eval(data[key])['n'])
+
         return sum_
 
         
     @wrappers.general_function_handler
     def get_list_average(self, namespace, geo_label, num_bedrooms, start_date, end_date):
-        keys = self.conn.keys('|'.join([namespace, str(num_bedrooms), geo_label]) + '*')     
+
+        data = self.conn.hgetall('|'.join([namespace, str(num_bedrooms), geo_label]))
 
         start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
         end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
         
-        filtered_keys = []
-        for k in keys:
-            attrs = k.split('|')
-            key_datetime = datetime.datetime.strptime(attrs[-1],"%Y-%m-%d")
-            if key_datetime > start_datetime and key_datetime < end_datetime:
-                filtered_keys.append(k)
+        filtered_keys = [k for k in data.keys() if datetime.datetime.strptime(k,"%Y-%m-%d") < end_datetime and datetime.datetime.strptime(k,"%Y-%m-%d") > start_datetime]
 
         num = 0
         denom = 0
-        for key in filtered_keys:
-            
-            val = eval(self.conn.get(key))
-            a = val['a']
-            n = val['n']
-            num += n*a
-            denom += n
 
+        for key in filtered_keys:
+            num += int(eval(data[key])['a'])*int(eval(data[key])['n'])
+            denom += int(eval(data[key])['n'])
         if denom == 0:
             return 0
         else:
-            return num/denom
-
-
-    @wrappers.general_function_handler
-    def set_listing(self, namespace, geo_label, num_bedrooms, list_datetime, list_average, list_volume):
-        geo_label = geo_label.lower()
-        try:
-            int(num_bedrooms)
-            float(list_average) # int or float is fine
-            int(list_volume)
-        except:
-            print 'At least one input was malformed input', 
-            return
-
-        key = '|'.join([namespace, str(num_bedrooms), geo_label,list_datetime])
-        self.conn.set(key, {'a':list_average,'n':list_volume})
+            return round(float(num)/float(denom))
 
 
     @wrappers.general_function_handler
@@ -109,12 +83,16 @@ class RedisManager:
             geo_label = json_doc['state_code'] + '-' + '_'.join(json_doc['city'].lower().split(' '))
             namespace = 'CI'
 
+        geo_label = geo_label.lower()
+
         for bed_i in json_doc['stats']:
+            row_dict = {}
             for week_i in json_doc['stats'][bed_i]:
                 rec = json_doc['stats'][bed_i][week_i]
-                avg = rec['a']
-                num = rec['n']
-                self.set_listing(namespace, geo_label, bed_i, week_i, avg, num)
+                row_dict[week_i] = "{'a':" + str(rec['a']) + ",'n':" + str(rec['n']) + "}"
+                
+            row_key = namespace + '|' + str(bed_i) + '|' + geo_label
+            self.conn.hmset(row_key, row_dict)
 
 
 def main():
