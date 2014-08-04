@@ -81,15 +81,45 @@ The row's columns:
 
 #### Redis
 
+Schema version 1
+
 As part of an evaluation of Redis on a single node vs HBase as part of a cluster (not a completely fair comparison), I tried using Redis to see if I could store all the listing data in memory.  Since Redis has no concept of tables, there is an abbreviation in the key prepended to the key above.  Also, having a variable number of columns is possible (i.e., using more complex hashs in Redis), but I wanted to try having the week be part of the key instead to keep it simple.
 
 The key for cities:
 
-     CT|3|ca_san_francisco|2014-05-24
+     > keys 'CI|3|ca-san_francisco*'
+      1) CI|3|ca-san_francisco|2010-07-31
+      2) CI|3|ca-san_francisco|2011-01-15
+      ...
      
 The value represents a single listing (as inputed) from python:
 
      {'a': 1338274, 'n': 190} 
+
+
+Schema version 2
+
+I found that the above schema had too high of a footprint.  The new schema leverages Redis hash data structure to reduce the footprint almost by an order of magnitude.
+
+The key for cities:
+
+     > keys 'CI|3|ca-san_francisco'
+      1) "CI|3|ca-san_francisco"
+     
+The value is a hash that is keyed by the listing week
+      
+     > hkeys 'CI|3|ca-san_francisco'
+      1) "2010-07-31"
+      2) "2011-01-15"
+     ...
+     
+The value of value with the average and number of listings for that geographic location for that week:
+
+     > hget 'CI|3|ca-san_francisco' '2010-07-31'
+      "{'a':1187840,'n':490}"
+
+
+The aggregation of having similar keys resulted in a significantly lower footprint.
 
 
 #### Hive 
