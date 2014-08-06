@@ -1,53 +1,73 @@
-import threading
 import urllib2
 import time
-import ParserWorker
+import sys
 
-class FetcherWorker(threading.Thread):
+from RedisQueue import RedisQueue
 
-    def __init__(self, url_queue, apikey, match_rule, writers, locks, metadata_table):
-        self.url_queue = url_queue
-        #self.text_queue = text_queue
+class FetcherWorker:
+
+    def __init__(self, in_queue_namespace, out_queue_namespace, apikey):
+
+        self.in_queue_namespace = in_queue_namespace
+        self.out_queue_namespace = out_queue_namespace
         self.apikey = apikey
-        self.writers_params = {"match_rule":match_rule, "writers":writers, "locks":locks, "metadata_table":metadata_table}
-        threading.Thread.__init__(self)
+
+        self.in_queue = RedisQueue(in_queue_namespace)
+        self.out_queue = RedisQueue(out_queue_namespace)
+
+        print "Fetcher loaded with apikey", self.apikey
+
 
     def run(self):
+
         while 1:
 
-            url_tup = self.url_queue.get()
-            if url_tup is None:
+            base_url = self.in_queue.get()
+
+            if base_url == "None":
                 # add end-of-queue markers for parsers
-                #self.text_queue.put(None) 
-                # ends thread
+                self.out_queue.put("None") 
+
+                # ends program
                 break
 
-            url = url_tup[0] + self.apikey 
-            location = url_tup[1]
+            url = base_url + self.apikey 
+            
             t1 = time.time()
             
-            # try twice for now, put in while loop next
-            print "fetching try 1", location
+            print "fetching try 1", url
+
             resp = urllib2.urlopen(url)
             if resp.code == 200: 
                 text = resp.read()
-                ParserWorker.ParserWorker((text,location, self.writers_params)).start()
-                #self.text_queue.put((text, location))
+                self.out_queue.put(text)
             else:
-                print 'failed once', location
+                print 'failed once', url
                 time.sleep(10)
-                print "fetching try 2", location
+                print "fetching try 2", url
                 resp = urllib2.urlopen(url)
                 if resp.code == 200:
                     text = resp.read()
-                    ParserWorker.ParserWorker((text,location, self.writers_params)).start()
-                    #self.text_queue.put((text, location))
+                    self.out_queue.put(text)
 
-            #print "done fetching", location
+            print "done fetching"
 
             # make sure we don't use the same API key within 2 seconds
             t2 = time.time()
             if t2 - t1 < 2.0:
                 time.sleep(2.0 - (t2 - t1))
 
-            self.url_queue.task_done()
+
+def main(argv):
+    
+    # in_queue_namespace, out_queue_namespace, apikey
+    in_q_ns = argv[0]
+    out_q_ns = argv[1]
+    apikey = argv[2]
+    
+    fw = FetcherWorker(in_q_ns, out_q_ns, apikey)
+    fw.run()
+
+# program
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -1,26 +1,42 @@
-import threading
-import DataParser # use this for now, then try using passed function
-import DatastoreWriterWorker
+import sys
+import DataParser 
+from RedisQueue import RedisQueue
 
-class ParserWorker(threading.Thread):
+class ParserWorker():
 
-    def __init__(self, text_tup):
-        self.text_tup = text_tup
-        threading.Thread.__init__(self)
+    def __init__(self, in_queue_namespace, out_queue_namespace):
+        
+        self.in_queue_namespace = in_queue_namespace
+        self.out_queue_namespace = out_queue_namespace
+
+        self.in_queue = RedisQueue(in_queue_namespace)
+        self.out_queue = RedisQueue(out_queue_namespace)
+
+        print "Parser worker loaded"
 
     def run(self):
-        text = self.text_tup[0]
-        location = self.text_tup[1]
-        writers_params = self.text_tup[2]
-        writers = writers_params["writers"]
-        locks = writers_params["locks"]
-        match_rule = writers_params["match_rule"]
-        metadata_table = writers_params["metadata_table"]
 
-        print "parsing", location
-        fluentd_accum = " "
-        hbase_accum = " "
+        while 1:
+            xml_text = self.in_queue.get()
+            print "Received XML"
+            if xml_text == "None":
+                self.out_queue.put("None")
+                break
 
-        fluentd_accum, hbase_accum = DataParser.parse_get_state_stats_resp(text) 
-        DatastoreWriterWorker.DatastoreWriterWorker( ( {"fluentd":fluentd_accum,"hbase":hbase_accum}, location)  , writers, locks, match_rule, metadata_table).start()
-        print "done parsing", location
+            json_doc = DataParser.parse_get_state_stats_resp(xml_text)
+            print "Made JSON"
+            self.out_queue.put(json_doc)
+     
+       
+def main(argv):
+    
+    # in_queue_namespace, out_queue_namespace
+    in_q_ns = argv[0]
+    out_q_ns = argv[1]
+    
+    pw = ParserWorker(in_q_ns, out_q_ns)
+    pw.run()
+
+# program
+if __name__ == "__main__":
+    main(sys.argv[1:])
