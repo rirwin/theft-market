@@ -1,0 +1,1 @@
+cat data/json/zipcode/zipcode.20140801_*.log | theft-market/map-reduce/python/mapper_zipcode_avg_list_cleaner.py > data/tsv/zipcode/avg_zipcode_listings.tsv
