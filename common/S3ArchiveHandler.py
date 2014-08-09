@@ -33,7 +33,7 @@ class S3ArchiveHandler:
 
         max_date = time.strptime("2000-01-01","%Y-%m-%d")        
         max_key = None
-        keys = self.bucket.list(pattern)
+        keys = self.bucket.list(pattern) # this can get slow
         for key in keys:
             
             # gets date when keys are pattern_YYYY-MM-DD.file_extension
@@ -66,7 +66,7 @@ class S3ArchiveHandler:
             print "archive name should end in tar.gz"
             return 
 
-        dir_ = os.getcwd() # save current dir
+        current_dir = os.getcwd() # save current dir
         
         try:
             # limit actions to the data directory
@@ -79,7 +79,7 @@ class S3ArchiveHandler:
         except:
             archive_name_created = None
 
-        os.chdir(dir_) # go back to previous dir
+        os.chdir(current_dir) # go back to previous dir
         return archive_name_created
 
 
@@ -112,17 +112,21 @@ class S3ArchiveHandler:
         
         os.chdir(dir_) # go back to previous dir
 
-    def send_archive_to_s3(self, archive_name):
+
+    def send_file_to_s3(self, rel_local_dir, file_name):
         
         # restrict actions to local data directory
-        full_path = self.local_data_dir + '/' + archive_name
-        if archive_name not in os.listdir(self.local_data_dir):
-            print "Archive", archive_name, "not in", self.local_data_dir
+        file_dir = self.local_data_dir + '/' + rel_local_dir
+        print "Reading local file:", file_dir + '/' + file_name
+        if file_name not in os.listdir(file_dir):
+            print "File", file_name, "not in", file_dir
             return
 
-        full_key_name = os.path.join(self.archive_bucket_dir, archive_name)
+        full_path = os.path.join(file_dir, file_name)
+        full_key_name = os.path.join(rel_local_dir, time.strftime("%Y-%m-%d"), file_name)
+        print "Making S3 key:", full_key_name
         k = self.bucket.new_key(full_key_name)
-        k.set_contents_from_filename(self.local_data_dir + '/' + archive_name, cb=percent_cb, num_cb=10)
+        k.set_contents_from_filename(full_path, cb=percent_cb, num_cb=10)
         print # newline
 
 def percent_cb(complete, total):
@@ -134,21 +138,27 @@ def init_process(s3ah):
     s3ah.get_info_sql_from_s3()
     full_archive_name = s3ah.get_most_recent_xml_archive_from_s3()
 
-    if fule_archive_name is not None:
+    if full_archive_name is not None:
         archive_filename = full_archive_name.split('/')[-1]
         s3ah.extract_archive_file(archive_filename)    
 
 
 def create_archive_and_send(s3ah):
     archive_name = s3ah.create_data_archive()
-    s3ah.send_archive_to_s3(archive_name)
+    s3ah.send_file_to_s3('' , archive_name)
 
 
 def main():
 
     s3ah = S3ArchiveHandler('../conf/')
-    create_archive_and_send(s3ah)
-    
+    #init_process(s3ah)
+    #create_archive_and_send(s3ah)
+
+    # send tsv to S3
+    #s3ah.send_file_to_s3('/tsv/state/', 'avg_state_listings.tsv')
+    #s3ah.send_file_to_s3('/tsv/city/', 'avg_city_listings.tsv')
+    #s3ah.send_file_to_s3('/tsv/county/', 'avg_county_listings.tsv')
+    #s3ah.send_file_to_s3('/tsv/zipcode/', 'avg_zipcode_listings.tsv')
 
 if '__main__' == __name__:
     main()
