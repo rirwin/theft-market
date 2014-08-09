@@ -89,23 +89,25 @@ class TruliaDataFetcher:
             print "loading HBase manager",
             import HBaseManager
             self.kv_mgr = HBaseManager.HBaseManager()
+            print "completed"
         elif kv_store == 'r':
             print "loading Redis manager",
             import RedisManager
             self.kv_mgr = RedisManager.RedisManager()
-
-        print "completed"
+            print "completed"
 
 
         fluentd_rx = cla_dict['fluentd_rx']
         if fluentd_rx == '':
             self.fluentd_enabled = False
             print "FluentD not enabled"
-        elif fluentd_rx == 'fs':
+        elif fluentd_rx == 'f':
+            print "loading fluentd for local fs"
             sender.setup('fs') 
             self.fluentd_enabled = True
             print "FluentD enabled for local filesystem"
-        elif fluentd_rx == 'hdfs':
+        elif fluentd_rx == 'h':
+            print "loading fluentd for hdfs"
             sender.setup('hdfs')
             self.fluentd_enabled = True
             print "FluentD enabled for HDFS"
